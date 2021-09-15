@@ -3,7 +3,7 @@
 
 # %%
 import pandas as pd
-from app_set_preprocessing import categor_prepro, get_feat_names
+from app_set_preprocessing import preprocessor, get_feat_names
 
 train = pd.read_csv('../02_data/application_train.csv')
 test = pd.read_csv('../02_data/application_test.csv')
@@ -17,7 +17,7 @@ except AssertionError:
 train.set_index('SK_ID_CURR', inplace=True)
 test.set_index('SK_ID_CURR', inplace=True)
 
-train_encoded = categor_prepro.fit_transform(train)
-#test_encoded = categor_prepro.transform(test)
+train_encoded = preprocessor.fit_transform(train)
+#test_encoded = preprocessor.transform(test)
 # %%
 print(get_feat_names(train))
