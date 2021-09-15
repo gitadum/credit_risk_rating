@@ -3,7 +3,7 @@
 
 # %%
 import pandas as pd
-from app_set_preprocessing import preprocessor, get_feat_names
+from preprocessing import preprocessor, get_feat_names
 
 train = pd.read_csv('../02_data/application_train.csv')
 test = pd.read_csv('../02_data/application_test.csv')
