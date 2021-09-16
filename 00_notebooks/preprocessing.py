@@ -4,14 +4,14 @@
 # %%
 import pandas as pd
 import numpy as np
-from sklearn import preprocessing
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.impute import SimpleImputer
+#from preprocess_funcs import SimpleImputerWithFeatureNames as SimpleImputerWFN
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.compose import make_column_transformer
-from FeatureNames import get_feature_names
+from preprocess_funcs import get_feature_names
 
 import warnings
 warnings.simplefilter(action='ignore', category=UserWarning)
@@ -42,9 +42,8 @@ for flag in flags:
     categor_ncoded_feats.append(flag)
     numeric_feats.remove(flag)
 
-categor_ncoded_prepro = make_pipeline(
-    (SimpleImputer(strategy='most_frequent'))
-)
+categor_ncoded_prepro = Pipeline([
+    ('imputer', SimpleImputer(strategy='most_frequent'))])
 
 #print('Categorical binary:\n', categor_binary_feats)
 #print('Numerical features:\n', numeric_feats)
@@ -69,15 +68,21 @@ assert len(numeric_feats) == len(numeric_mean_feats)\
                              + len(numeric_mode_feats)\
                              + len(othr_numeric_feats)
 
-numeric_imputer = make_column_transformer(
-    (SimpleImputer(strategy='mean'), numeric_mean_feats),
-    (SimpleImputer(strategy='median'), numeric_medi_feats),
-    (SimpleImputer(strategy='most_frequent'), numeric_mode_feats),
-    (SimpleImputer(strategy='median'), othr_numeric_feats),
-    remainder='passthrough'
-    )
+numeric_mean_imputer = SimpleImputer(strategy='mean')
+numeric_medi_imputer = SimpleImputer(strategy='median')
+numeric_mode_imputer = SimpleImputer(strategy='most_frequent')
+numeric_defl_imputer = SimpleImputer(strategy='median')
 
-numeric_prepro = make_pipeline(numeric_imputer, MinMaxScaler())
+# numeric_imputer = make_column_transformer(
+#     (SimpleImputer(strategy='mean'), numeric_mean_feats),
+#     (SimpleImputer(strategy='median'), numeric_medi_feats),
+#     (SimpleImputer(strategy='most_frequent'), numeric_mode_feats),
+#     (SimpleImputer(strategy='median'), othr_numeric_feats),
+#     remainder='passthrough'
+#     )
+
+# numeric_prepro = Pipeline(steps=[('imputer', numeric_imputer), 
+# ('scaler', MinMaxScaler())])
 # %%
 # # Prétraitement des variables catégoriques
 
@@ -147,31 +152,33 @@ categor_binary_prepro = Pipeline(steps=[
 # %%
 # # Pipeline prétraitement finale
 preprocessor = make_column_transformer(
-    (numeric_prepro, numeric_feats),
+    (numeric_defl_imputer, othr_numeric_feats),
+    (numeric_mean_imputer, numeric_mean_feats),
+    (numeric_medi_imputer, numeric_medi_feats),
+    (numeric_mode_imputer, numeric_mode_feats),
     (categor_binary_prepro, categor_binary_feats),
     (categor_ncoded_prepro, categor_ncoded_feats),
     (categor_multid_prepro, categor_multid_feats),
     remainder='passthrough'
-)
+    )
 
 # %%
-def get_feat_names(X):
+def get_preprocessed_set_column_names(X):
+    prepro_col_names = get_feature_names(X)
     onehot_feat_renaming = {k:v for k,v in zip(range(len(categor_multid_feats)),
                                                      categor_multid_feats)}
-    onehot_feat_names = []
-    for feat_name in [n.replace('encoder__x', '')\
-                      for n in get_feature_names(categor_multid_prepro.fit(
-                                                 X[categor_multid_feats]))]:
-        for i in range(len(categor_multid_feats)):
-            if feat_name[0] == str(i):
-                new_feat_name = onehot_feat_renaming[i] + feat_name[1:]
-        onehot_feat_names.append(new_feat_name)
-        feat_names = [
-            numeric_feats +
-            categor_binary_feats +
-            categor_ncoded_feats +
-            onehot_feat_names
-        ]
-    return feat_names
+    column_names = []
+    for col_name in prepro_col_names:
+        if col_name == 'TARGET':
+            new_col_name = col_name
+        elif col_name[:10] == 'encoder__x':
+            new_col_name = col_name.replace('encoder__x', '')
+            for i in range(len(categor_multid_feats)):
+                if new_col_name[0] == str(i):
+                    new_col_name = onehot_feat_renaming[i] + new_col_name[1:]
+        else:
+            new_col_name = col_name.split('__')[1]
+        column_names.append(new_col_name)
+    return column_names
 
 # %%

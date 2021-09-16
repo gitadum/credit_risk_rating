@@ -3,7 +3,7 @@
 
 # %%
 import pandas as pd
-from preprocessing import preprocessor, get_feat_names
+from preprocessing import preprocessor, get_preprocessed_set_column_names
 
 train = pd.read_csv('../02_data/application_train.csv')
 test = pd.read_csv('../02_data/application_test.csv')
@@ -17,7 +17,11 @@ except AssertionError:
 train.set_index('SK_ID_CURR', inplace=True)
 test.set_index('SK_ID_CURR', inplace=True)
 
-train_encoded = preprocessor.fit_transform(train)
-#test_encoded = preprocessor.transform(test)
+train_preprocessed = preprocessor.fit_transform(train)
+#test_preprocessed = preprocessor.transform(test)
+
+print(train_preprocessed.shape)
 # %%
-print(get_feat_names(train))
+df = pd.DataFrame(train_preprocessed,
+                  columns=get_preprocessed_set_column_names(preprocessor))
+# %%
