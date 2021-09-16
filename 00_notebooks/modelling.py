@@ -3,6 +3,9 @@
 
 # %%
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import RandomForestClassifier
 from preprocessing import preprocessor, get_preprocessed_set_column_names
 
 train = pd.read_csv('../02_data/application_train.csv')
@@ -17,11 +20,26 @@ except AssertionError:
 train.set_index('SK_ID_CURR', inplace=True)
 test.set_index('SK_ID_CURR', inplace=True)
 
-train_preprocessed = preprocessor.fit_transform(train)
+X, y = train.iloc[:, 1:], train.iloc[:, 0]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+# %%
+
+X_transformed = preprocessor.fit_transform(X)
 #test_preprocessed = preprocessor.transform(test)
 
-print(train_preprocessed.shape)
+print(X_transformed.shape)
 # %%
-df = pd.DataFrame(train_preprocessed,
+df = pd.DataFrame(X_transformed,
                   columns=get_preprocessed_set_column_names(preprocessor))
+# %%
+
+model = make_pipeline(preprocessor, RandomForestClassifier()
+)
+model.fit(X_train, y_train)
+# %%
+model.get_params()
+
+# %%
+y_pred = model.predict(X_test)
 # %%
