@@ -35,62 +35,62 @@ numeric_feats = train.select_dtypes(['int64', 'float64']).columns.tolist()
 
 flag_names = ['FLAG', 'REG_', 'LIVE']
 flags = [feat for feat in numeric_feats if feat[:4] in flag_names]
-categor_ncoded_feats = []
+categor_encoded_feats = []
 for feat in numeric_feats:
     if feat not in flags:
         if dimensionality(feat,train) <= 2:
-            categor_ncoded_feats.append(feat)
+            categor_encoded_feats.append(feat)
             numeric_feats.remove(feat)
 
 for flag in flags:
-    categor_ncoded_feats.append(flag)
+    categor_encoded_feats.append(flag)
     numeric_feats.remove(flag)
 
-categor_ncoded_prepro = Pipeline([
+categor_encoded_prepro = Pipeline([
     ('imputer', SimpleImputer(strategy='most_frequent'))])
 
-numeric_mean_feats = []
-numeric_medi_feats = []
-numeric_mode_feats = []
-othr_numeric_feats = []
+numeric_avg_feats = []
+numeric_med_feats = []
+numeric_mod_feats = []
+other_numeric_feats = []
 
 for feat in numeric_feats:
     if feat[-4:] == '_AVG':
-        numeric_mean_feats.append(feat)
+        numeric_avg_feats.append(feat)
     elif feat[-4:] == 'MEDI':
-        numeric_medi_feats.append(feat)
+        numeric_med_feats.append(feat)
     elif feat[-4:] == 'MODE':
-        numeric_mode_feats.append(feat)
+        numeric_mod_feats.append(feat)
     else:
-        othr_numeric_feats.append(feat)
+        other_numeric_feats.append(feat)
 
-assert len(numeric_feats) == len(numeric_mean_feats)\
-                             + len(numeric_medi_feats)\
-                             + len(numeric_mode_feats)\
-                             + len(othr_numeric_feats)
+assert len(numeric_feats) == len(numeric_avg_feats)\
+                             + len(numeric_med_feats)\
+                             + len(numeric_mod_feats)\
+                             + len(other_numeric_feats)
 
-numeric_mean_imputer = SimpleImputer(strategy='mean')
-numeric_medi_imputer = SimpleImputer(strategy='median')
-numeric_mode_imputer = SimpleImputer(strategy='most_frequent')
-numeric_defl_imputer = SimpleImputer(strategy='median')
+numeric_avg_imputer = SimpleImputer(strategy='mean')
+numeric_med_imputer = SimpleImputer(strategy='median')
+numeric_mod_imputer = SimpleImputer(strategy='most_frequent')
+numeric_def_imputer = SimpleImputer(strategy='median')
 
-numeric_mean_prepro = Pipeline(steps=[
-    ('imputer', numeric_mean_imputer),
+numeric_avg_prepro = Pipeline(steps=[
+    ('imputer', numeric_avg_imputer),
     ('scaler', MinMaxScaler())
     ])
 
-numeric_medi_prepro = Pipeline(steps=[
-    ('imputer', numeric_medi_imputer),
+numeric_med_prepro = Pipeline(steps=[
+    ('imputer', numeric_med_imputer),
     ('scaler', MinMaxScaler())
     ])
 
-numeric_mode_prepro = Pipeline(steps=[
-    ('imputer', numeric_mode_imputer),
+numeric_mod_prepro = Pipeline(steps=[
+    ('imputer', numeric_mod_imputer),
     ('scaler', MinMaxScaler())
     ])
 
-numeric_defl_prepro = Pipeline(steps=[
-    ('imputer', numeric_defl_imputer),
+numeric_def_prepro = Pipeline(steps=[
+    ('imputer', numeric_def_imputer),
     ('scaler', MinMaxScaler())
     ])
 
@@ -100,13 +100,13 @@ numeric_defl_prepro = Pipeline(steps=[
 categor_feats = train.select_dtypes('object').columns.tolist()
 # Division entre les catégories dites "binaires" (les flags)
 # et les catégories multi dimensionnelles
-categor_binary_feats = []
-categor_multid_feats = []
+categor_ordinal_feats = []
+categor_one_hot_feats = []
 for feat in categor_feats:
     if dimensionality(feat,train) > 2:
-        categor_multid_feats.append(feat)
+        categor_one_hot_feats.append(feat)
     else:
-        categor_binary_feats.append(feat)
+        categor_ordinal_feats.append(feat)
 
 miscategorized_feats = ['CODE_GENDER', 'WEEKDAY_APPR_PROCESS_START']
 # N.B. : la variable `WEEKDAY_APPR_PROCESS_START` n'est pas binaire
@@ -114,8 +114,8 @@ miscategorized_feats = ['CODE_GENDER', 'WEEKDAY_APPR_PROCESS_START']
 # elle sera traitée avec les binaires pour l'instant
 
 for feat in miscategorized_feats:
-    categor_multid_feats.remove(feat)
-    categor_binary_feats.append(feat)
+    categor_one_hot_feats.remove(feat)
+    categor_ordinal_feats.append(feat)
 
 # ## Prétraitement des variables catégoriques multidimensionnelles
 
@@ -127,13 +127,13 @@ def format_categor_values(x):
     return y
 
 format_vfunc = np.vectorize(format_categor_values)
-categor_multid_value_formatter = FunctionTransformer(lambda x: format_vfunc(x))
+categor_one_hot_value_formatter = FunctionTransformer(lambda x: format_vfunc(x))
 
 #concat_feat_name_with_value = lambda x: '___' + x.name + '_' + x.astype(str)
 
-categor_multid_prepro = Pipeline(steps=[
+categor_one_hot_prepro = Pipeline(steps=[
     ('imputer', SimpleImputer(strategy='constant', fill_value='Unknown')),
-    ('value_formatter', categor_multid_value_formatter),
+    ('value_formatter', categor_one_hot_value_formatter),
     ('encoder', OneHotEncoder())])
 
 # ## Prétraitement des variables catégoriques "binaires" (bi-dimensionnelles)
@@ -150,7 +150,7 @@ weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY',
             'SUNDAY']
 categories = [contract_types, y_or_n, y_or_n, yes_or_no, genders, weekdays]
 
-categor_binary_prepro = Pipeline(steps=[
+categor_ordinal_prepro = Pipeline(steps=[
     ('nan_imputer', SimpleImputer(strategy='most_frequent')),
     ('xna_imputer', SimpleImputer(missing_values='XNA',
                                    strategy='most_frequent')),
@@ -159,39 +159,41 @@ categor_binary_prepro = Pipeline(steps=[
 # %%
 # # Pipeline prétraitement finale
 preprocessor = make_column_transformer(
-    (numeric_defl_prepro, othr_numeric_feats),
-    (numeric_mean_prepro, numeric_mean_feats),
-    (numeric_medi_prepro, numeric_medi_feats),
-    (numeric_mode_prepro, numeric_mode_feats),
-    (categor_binary_prepro, categor_binary_feats),
-    (categor_ncoded_prepro, categor_ncoded_feats),
-    (categor_multid_prepro, categor_multid_feats),
+    (numeric_def_prepro, other_numeric_feats),
+    (numeric_avg_prepro, numeric_avg_feats),
+    (numeric_med_prepro, numeric_med_feats),
+    (numeric_mod_prepro, numeric_mod_feats),
+    (categor_ordinal_prepro, categor_ordinal_feats),
+    (categor_encoded_prepro, categor_encoded_feats),
+    (categor_one_hot_prepro, categor_one_hot_feats),
     remainder='passthrough'
     )
 
-preprocessor_without_scaler = make_column_transformer(
-    (numeric_defl_imputer, othr_numeric_feats),
-    (numeric_mean_imputer, numeric_mean_feats),
-    (numeric_medi_imputer, numeric_medi_feats),
-    (numeric_mode_imputer, numeric_mode_feats),
-    (categor_binary_prepro, categor_binary_feats),
-    (categor_ncoded_prepro, categor_ncoded_feats),
-    (categor_multid_prepro, categor_multid_feats),
+preprocessor_no_scaler = make_column_transformer(
+    (numeric_def_imputer, other_numeric_feats),
+    (numeric_avg_imputer, numeric_avg_feats),
+    (numeric_med_imputer, numeric_med_feats),
+    (numeric_mod_imputer, numeric_mod_feats),
+    (categor_ordinal_prepro, categor_ordinal_feats),
+    (categor_encoded_prepro, categor_encoded_feats),
+    (categor_one_hot_prepro, categor_one_hot_feats),
     remainder='passthrough'
     )
 
 # %%
 def get_preprocessed_set_column_names(X):
     prepro_col_names = get_feature_names(X)
-    onehot_feat_renaming = {k:v for k,v in zip(range(len(categor_multid_feats)),
-                                                     categor_multid_feats)}
+    onehot_feat_renaming = {
+        k:v for k,v in zip(range(len(categor_one_hot_feats)),
+                           categor_one_hot_feats)
+                           }
     column_names = []
     for col_name in prepro_col_names:
         if col_name == 'TARGET':
             new_col_name = col_name
         elif col_name[:10] == 'encoder__x':
             new_col_name = col_name.replace('encoder__x', '')
-            for i in range(len(categor_multid_feats)):
+            for i in range(len(categor_one_hot_feats)):
                 if new_col_name[0] == str(i):
                     new_col_name = onehot_feat_renaming[i] + new_col_name[1:]
         else:
