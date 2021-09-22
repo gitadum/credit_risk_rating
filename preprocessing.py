@@ -4,9 +4,8 @@
 # %%
 import pandas as pd
 import numpy as np
-from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-#from preprocess_funcs import SimpleImputerWithFeatureNames as SimpleImputerWFN
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.preprocessing import MinMaxScaler
@@ -16,8 +15,13 @@ from preprocess_funcs import get_feature_names
 import warnings
 warnings.simplefilter(action='ignore', category=UserWarning)
 
-
-train = pd.read_csv('../02_data/application_train.csv')
+try:
+    train = pd.read_csv('02_data/application_train.csv')
+except FileNotFoundError:
+    try:
+        train = pd.read_csv('../02_data/application_train.csv')
+    except FileNotFoundError:
+        raise FileNotFoundError('train data not found in the data directory')
 
 # On supprime la colonne d'index et la colonne de la variable cible
 train.drop(columns=['SK_ID_CURR', 'TARGET'], inplace=True)
@@ -45,9 +49,6 @@ for flag in flags:
 categor_ncoded_prepro = Pipeline([
     ('imputer', SimpleImputer(strategy='most_frequent'))])
 
-#print('Categorical binary:\n', categor_binary_feats)
-#print('Numerical features:\n', numeric_feats)
-
 numeric_mean_feats = []
 numeric_medi_feats = []
 numeric_mode_feats = []
@@ -73,16 +74,26 @@ numeric_medi_imputer = SimpleImputer(strategy='median')
 numeric_mode_imputer = SimpleImputer(strategy='most_frequent')
 numeric_defl_imputer = SimpleImputer(strategy='median')
 
-# numeric_imputer = make_column_transformer(
-#     (SimpleImputer(strategy='mean'), numeric_mean_feats),
-#     (SimpleImputer(strategy='median'), numeric_medi_feats),
-#     (SimpleImputer(strategy='most_frequent'), numeric_mode_feats),
-#     (SimpleImputer(strategy='median'), othr_numeric_feats),
-#     remainder='passthrough'
-#     )
+numeric_mean_prepro = Pipeline(steps=[
+    ('imputer', numeric_mean_imputer),
+    ('scaler', MinMaxScaler())
+    ])
 
-# numeric_prepro = Pipeline(steps=[('imputer', numeric_imputer), 
-# ('scaler', MinMaxScaler())])
+numeric_medi_prepro = Pipeline(steps=[
+    ('imputer', numeric_medi_imputer),
+    ('scaler', MinMaxScaler())
+    ])
+
+numeric_mode_prepro = Pipeline(steps=[
+    ('imputer', numeric_mode_imputer),
+    ('scaler', MinMaxScaler())
+    ])
+
+numeric_defl_prepro = Pipeline(steps=[
+    ('imputer', numeric_defl_imputer),
+    ('scaler', MinMaxScaler())
+    ])
+
 # %%
 # # Prétraitement des variables catégoriques
 
@@ -125,8 +136,6 @@ categor_multid_prepro = Pipeline(steps=[
     ('value_formatter', categor_multid_value_formatter),
     ('encoder', OneHotEncoder())])
 
-#categor_multidim_preprocessor.fit_transform(train[categor_multid_feats])
-
 # ## Prétraitement des variables catégoriques "binaires" (bi-dimensionnelles)
 
 # On mappe les valeurs possibles pour chaque variable binaire
@@ -147,11 +156,20 @@ categor_binary_prepro = Pipeline(steps=[
                                    strategy='most_frequent')),
     ('encoder', OrdinalEncoder(categories=categories))])
 
-#categor_binary_preprocessor.fit_transform(train[categor_binary_feats])
-
 # %%
 # # Pipeline prétraitement finale
 preprocessor = make_column_transformer(
+    (numeric_defl_prepro, othr_numeric_feats),
+    (numeric_mean_prepro, numeric_mean_feats),
+    (numeric_medi_prepro, numeric_medi_feats),
+    (numeric_mode_prepro, numeric_mode_feats),
+    (categor_binary_prepro, categor_binary_feats),
+    (categor_ncoded_prepro, categor_ncoded_feats),
+    (categor_multid_prepro, categor_multid_feats),
+    remainder='passthrough'
+    )
+
+preprocessor_without_scaler = make_column_transformer(
     (numeric_defl_imputer, othr_numeric_feats),
     (numeric_mean_imputer, numeric_mean_feats),
     (numeric_medi_imputer, numeric_medi_feats),
@@ -180,5 +198,3 @@ def get_preprocessed_set_column_names(X):
             new_col_name = col_name.split('__')[1]
         column_names.append(new_col_name)
     return column_names
-
-# %%
