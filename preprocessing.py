@@ -12,9 +12,6 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.compose import make_column_transformer
 from preprocess_funcs import get_feature_names
 
-import warnings
-warnings.simplefilter(action='ignore', category=UserWarning)
-
 try:
     train = pd.read_csv('02_data/application_train.csv')
 except FileNotFoundError:

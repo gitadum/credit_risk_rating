@@ -5,7 +5,10 @@ import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
+
 import warnings
+warnings.simplefilter(action='ignore', category=UserWarning)
+
 
 def get_feature_names(column_transformer):
     """Get feature names from all transformers.
