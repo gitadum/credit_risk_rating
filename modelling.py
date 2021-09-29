@@ -22,7 +22,9 @@ test.set_index('SK_ID_CURR', inplace=True)
 X, y = train.iloc[:, 1:], train.iloc[:, 0]
 
 # %%
-X_transformed = prep.fit_transform(X)
+full_prep = make_pipeline(pd_prep, prep)
+
+X_transformed = full_prep.fit_transform(X)
 #test_preprocessed = preprocessor.transform(test)
 
 print(X_transformed.shape)
