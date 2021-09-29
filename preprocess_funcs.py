@@ -10,6 +10,21 @@ import warnings
 warnings.simplefilter(action='ignore', category=UserWarning)
 
 
+class DataframeFunctionTransformer():
+    """FunctionTransformer object that works with pandas DataFrames
+    -------
+    source code : https://queirozf.com/entries/scikit-learn-pipelines-custom-pipelines-and-pandas-integration
+    """
+    def __init__(self, func):
+        self.func = func
+
+    def transform(self, input_df, **transform_params):
+        return self.func(input_df)
+
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+
 def get_feature_names(column_transformer):
     """Get feature names from all transformers.
     Returns
