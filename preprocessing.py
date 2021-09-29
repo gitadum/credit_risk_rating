@@ -10,7 +10,7 @@ from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.compose import make_column_transformer
-from preprocess_funcs import get_feature_names
+from preprocess_funcs import DataframeFunctionTransformer, get_feature_names
 
 try:
     train = pd.read_csv('02_data/application_train.csv')
@@ -22,6 +22,30 @@ except FileNotFoundError:
 
 # On supprime la colonne d'index et la colonne de la variable cible
 train.drop(columns=['SK_ID_CURR', 'TARGET'], inplace=True)
+
+# DataFrame Transformations
+
+# On assigne une valeur -1 à la variable `OWN_CAR_AGE` 
+# pour les clients qui ne possèdent pas de voiture
+def assign_default_car_age(df):
+    '''Assigns a default value of -1.0 to the `OWN_CAR_AGE` variable
+    for every applicant who does not own a car'''
+    df.loc[df.FLAG_OWN_CAR == 'N', 'OWN_CAR_AGE'] = -1.0
+    return df
+
+def impute_annuity_goodsprice(df):
+    '''Special missing value imputer for loan annuity and good price.
+    Assigns 5% of total credit value for annuity.
+    Assigns 90% of total credit value for goods price.'''
+    d = lambda x: round(x, 1)
+    df.loc[:,'AMT_ANNUITY'] = df.AMT_ANNUITY.fillna(d(df.AMT_CREDIT*.05))
+    df.loc[:,'AMT_GOODS_PRICE'] = df.AMT_GOODS_PRICE.fillna(d(df.AMT_CREDIT*.9))
+    return df
+
+pandas_special_prepro = Pipeline(steps=[
+    ('car_age', DataframeFunctionTransformer(assign_default_car_age)),
+    ('annuity_goods', DataframeFunctionTransformer(impute_annuity_goodsprice))
+])
 
 # Récupération de la cardinalité des variables
 dimensionality = lambda x,df : df[[x]].apply(pd.Series.nunique).values
