@@ -4,6 +4,7 @@
 # %%
 import pandas as pd
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
@@ -46,6 +47,27 @@ pandas_special_prepro = Pipeline(steps=[
     ('car_age', DataframeFunctionTransformer(assign_default_car_age)),
     ('annuity_goods', DataframeFunctionTransformer(impute_annuity_goodsprice))
 ])
+
+# Classe transformer custom
+
+class CreditInfosImputer(BaseEstimator, TransformerMixin):
+    '''Special missing value imputer for loan annuity and good price.
+    Assigns 5% of total credit value for annuity.
+    Assigns 90% of total credit value for goods price.'''
+    def __init__(self):
+        print('youhou')
+    
+    def fit(self, X, y=None):
+        decimal = lambda x: round(x, 1)
+        X.AMT_ANNUITY.fillna(decimal(X.AMT_CREDIT * .05), inplace=True)
+        X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90), inplace=True)
+        return self
+    
+    def transform(self, X):
+        decimal = lambda x: round(x, 1)
+        X.AMT_ANNUITY.fillna(decimal(X.AMT_CREDIT * .05), inplace=True)
+        X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90), inplace=True)
+        return X
 
 # Récupération de la cardinalité des variables
 dimensionality = lambda x,df : df[[x]].apply(pd.Series.nunique).values
