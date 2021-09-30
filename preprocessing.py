@@ -55,12 +55,12 @@ class CreditInfosImputer(BaseEstimator, TransformerMixin):
     Assigns 5% of total credit value for annuity.
     Assigns 90% of total credit value for goods price.'''
     def __init__(self):
-        print('youhou')
+        return None
     
     def fit(self, X, y=None):
         decimal = lambda x: round(x, 1)
-        X.AMT_ANNUITY.fillna(decimal(X.AMT_CREDIT * .05), inplace=True)
-        X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90), inplace=True)
+        X.AMT_ANNUITY.fillna(decimal(X.AMT_CREDIT * .05)) #, inplace=True)
+        X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90)) #, inplace=True)
         return self
     
     def transform(self, X):
@@ -68,6 +68,14 @@ class CreditInfosImputer(BaseEstimator, TransformerMixin):
         X.AMT_ANNUITY.fillna(decimal(X.AMT_CREDIT * .05), inplace=True)
         X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90), inplace=True)
         return X
+
+credit_info_imputer = CreditInfosImputer()
+credit_info_feats = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE']
+
+credit_info_prepro = Pipeline(steps=[
+    ('imputer', credit_info_imputer),
+    ('scaler', MinMaxScaler())
+])
 
 # Récupération de la cardinalité des variables
 dimensionality = lambda x,df : df[[x]].apply(pd.Series.nunique).values
@@ -91,6 +99,9 @@ for flag in flags:
 
 categor_encoded_prepro = Pipeline([
     ('imputer', SimpleImputer(strategy='most_frequent'))])
+
+for feat in credit_info_feats:
+    numeric_feats.remove(feat)
 
 numeric_avg_feats = []
 numeric_med_feats = []
@@ -177,7 +188,7 @@ categor_one_hot_value_formatter = FunctionTransformer(lambda x: format_vfunc(x))
 categor_one_hot_prepro = Pipeline(steps=[
     ('imputer', SimpleImputer(strategy='constant', fill_value='Unknown')),
     ('value_formatter', categor_one_hot_value_formatter),
-    ('encoder', OneHotEncoder())])
+    ('encoder', OneHotEncoder(handle_unknown='ignore'))])
 
 # ## Prétraitement des variables catégoriques "binaires" (bi-dimensionnelles)
 
@@ -202,6 +213,7 @@ categor_ordinal_prepro = Pipeline(steps=[
 # %%
 # # Pipeline prétraitement finale
 preprocessor = make_column_transformer(
+    (credit_info_prepro, credit_info_feats),
     (numeric_def_prepro, other_numeric_feats),
     (numeric_avg_prepro, numeric_avg_feats),
     (numeric_med_prepro, numeric_med_feats),
@@ -213,6 +225,7 @@ preprocessor = make_column_transformer(
     )
 
 preprocessor_no_scaler = make_column_transformer(
+    (credit_info_imputer, credit_info_feats),
     (numeric_def_imputer, other_numeric_feats),
     (numeric_avg_imputer, numeric_avg_feats),
     (numeric_med_imputer, numeric_med_feats),
