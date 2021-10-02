@@ -24,17 +24,8 @@ except FileNotFoundError:
 # On supprime la colonne d'index et la colonne de la variable cible
 train.drop(columns=['SK_ID_CURR', 'TARGET'], inplace=True)
 
+# %%
 # DataFrame Transformations
-
-# On assigne une valeur -1 à la variable `OWN_CAR_AGE` 
-# pour les clients qui ne possèdent pas de voiture
-def assign_default_car_age(df):
-    '''Assigns a default value of -1.0 to the `OWN_CAR_AGE` variable
-    for every applicant who does not own a car'''
-    df.loc[df.FLAG_OWN_CAR == 'N', 'OWN_CAR_AGE'] = -1.0
-    return df
-
-# Classe transformer custom
 
 class CreditInfosImputer(BaseEstimator, TransformerMixin):
     '''Special missing value imputer for loan annuity and good price.
@@ -45,8 +36,8 @@ class CreditInfosImputer(BaseEstimator, TransformerMixin):
     
     def fit(self, X, y=None):
         decimal = lambda x: round(x, 1)
-        X.AMT_ANNUITY.fillna(decimal(X.AMT_CREDIT * .05)) #, inplace=True)
-        X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90)) #, inplace=True)
+        X.AMT_ANNUITY.fillna(decimal(X.AMT_CREDIT * .05), inplace=True)
+        X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90), inplace=True)
         return self
     
     def transform(self, X):
@@ -60,8 +51,34 @@ credit_info_feats = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE']
 
 credit_info_prepro = Pipeline(steps=[
     ('imputer', credit_info_imputer),
-    ('scaler', MinMaxScaler())
-])
+    ('scaler', MinMaxScaler())])
+
+# On assigne une valeur -1 à la variable `OWN_CAR_AGE` 
+# pour les clients qui ne possèdent pas de voiture
+class CarInfosImputer(BaseEstimator, TransformerMixin):
+    '''Assigns a default value of -1.0 to the `OWN_CAR_AGE` variable
+    for every applicant who does not own a car'''
+    def __init__(self):
+        return None
+    
+    def fit(self, X, y=None):
+        median_car_age = X.OWN_CAR_AGE.median()
+        X.loc[X.FLAG_OWN_CAR == 'N', 'OWN_CAR_AGE'] = -1.0
+        X.OWN_CAR_AGE.fillna(median_car_age, inplace=True)
+        return self
+    
+    def transform(self, X):
+        median_car_age = X.OWN_CAR_AGE.median()
+        X.loc[X.FLAG_OWN_CAR == 'N', 'OWN_CAR_AGE'] = -1.0
+        X.OWN_CAR_AGE.fillna(median_car_age, inplace=True)
+        return X
+
+car_info_imputer = CarInfosImputer()
+car_info_feats = ['FLAG_OWN_CAR', 'OWN_CAR_AGE']
+
+car_info_prepro = Pipeline(steps=[
+    ('imputer', car_info_imputer),
+    ('scaler', MinMaxScaler())])
 
 # Récupération de la cardinalité des variables
 dimensionality = lambda x,df : df[[x]].apply(pd.Series.nunique).values
@@ -116,23 +133,19 @@ numeric_def_imputer = SimpleImputer(strategy='median')
 
 numeric_avg_prepro = Pipeline(steps=[
     ('imputer', numeric_avg_imputer),
-    ('scaler', MinMaxScaler())
-    ])
+    ('scaler', MinMaxScaler())])
 
 numeric_med_prepro = Pipeline(steps=[
     ('imputer', numeric_med_imputer),
-    ('scaler', MinMaxScaler())
-    ])
+    ('scaler', MinMaxScaler()) ])
 
 numeric_mod_prepro = Pipeline(steps=[
     ('imputer', numeric_mod_imputer),
-    ('scaler', MinMaxScaler())
-    ])
+    ('scaler', MinMaxScaler())])
 
 numeric_def_prepro = Pipeline(steps=[
     ('imputer', numeric_def_imputer),
-    ('scaler', MinMaxScaler())
-    ])
+    ('scaler', MinMaxScaler())])
 
 # %%
 # # Prétraitement des variables catégoriques
@@ -169,10 +182,10 @@ def format_categor_values(x):
 format_vfunc = np.vectorize(format_categor_values)
 categor_one_hot_value_formatter = FunctionTransformer(lambda x: format_vfunc(x))
 
-#concat_feat_name_with_value = lambda x: '___' + x.name + '_' + x.astype(str)
-
 categor_one_hot_prepro = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='constant', fill_value='Unknown')),
+    ('nan_imputer', SimpleImputer(strategy='constant', fill_value='Unknown')),
+    ('xna_imputer', SimpleImputer(missing_values='XNA', strategy='constant',
+                                  fill_value='Unknown')),
     ('value_formatter', categor_one_hot_value_formatter),
     ('encoder', OneHotEncoder(handle_unknown='ignore'))])
 
@@ -186,8 +199,8 @@ contract_types = ['Cash loans', 'Revolving loans']
 y_or_n = ['N', 'Y']
 yes_or_no = ['No', 'Yes']
 genders = ['M', 'F']
-weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY',
-            'SUNDAY']
+weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
+            'FRIDAY', 'SATURDAY', 'SUNDAY']
 categories = [contract_types, y_or_n, y_or_n, yes_or_no, genders, weekdays]
 
 categor_ordinal_prepro = Pipeline(steps=[
@@ -200,6 +213,7 @@ categor_ordinal_prepro = Pipeline(steps=[
 # # Pipeline prétraitement finale
 preprocessor = make_column_transformer(
     (credit_info_prepro, credit_info_feats),
+    (car_info_prepro, car_info_feats),
     (numeric_def_prepro, other_numeric_feats),
     (numeric_avg_prepro, numeric_avg_feats),
     (numeric_med_prepro, numeric_med_feats),
@@ -207,11 +221,11 @@ preprocessor = make_column_transformer(
     (categor_ordinal_prepro, categor_ordinal_feats),
     (categor_encoded_prepro, categor_encoded_feats),
     (categor_one_hot_prepro, categor_one_hot_feats),
-    remainder='passthrough'
-    )
+    remainder='passthrough')
 
 preprocessor_no_scaler = make_column_transformer(
     (credit_info_imputer, credit_info_feats),
+    (car_info_imputer, car_info_feats),
     (numeric_def_imputer, other_numeric_feats),
     (numeric_avg_imputer, numeric_avg_feats),
     (numeric_med_imputer, numeric_med_feats),
@@ -219,8 +233,7 @@ preprocessor_no_scaler = make_column_transformer(
     (categor_ordinal_prepro, categor_ordinal_feats),
     (categor_encoded_prepro, categor_encoded_feats),
     (categor_one_hot_prepro, categor_one_hot_feats),
-    remainder='passthrough'
-    )
+    remainder='passthrough')
 
 # %%
 def get_preprocessed_set_column_names(X):
