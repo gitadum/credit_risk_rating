@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# %%
 import pandas as pd
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -9,7 +8,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import FunctionTransformer
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.compose import make_column_transformer
 from preprocess_funcs import get_feature_names
 
@@ -24,8 +22,7 @@ except FileNotFoundError:
 # On supprime la colonne d'index et la colonne de la variable cible
 train.drop(columns=['SK_ID_CURR', 'TARGET'], inplace=True)
 
-# %%
-# DataFrame Transformations
+# Techniques d'imputations spécifiques basées sur pandas
 
 class CreditInfosImputer(BaseEstimator, TransformerMixin):
     '''Special missing value imputer for loan annuity and good price.
@@ -46,12 +43,7 @@ class CreditInfosImputer(BaseEstimator, TransformerMixin):
         X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90), inplace=True)
         return X
 
-credit_info_imputer = CreditInfosImputer()
 credit_info_feats = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE']
-
-credit_info_prepro = Pipeline(steps=[
-    ('imputer', credit_info_imputer),
-    ('scaler', MinMaxScaler())])
 
 # On assigne une valeur -1 à la variable `OWN_CAR_AGE` 
 # pour les clients qui ne possèdent pas de voiture
@@ -77,18 +69,10 @@ class CarInfosImputer(BaseEstimator, TransformerMixin):
         X.OWN_CAR_AGE.fillna(median_car_age, inplace=True)
         return X
 
-car_info_imputer = CarInfosImputer()
 car_info_feats = ['FLAG_OWN_CAR', 'OWN_CAR_AGE']
 
-car_info_prepro = Pipeline(steps=[
-    ('imputer', car_info_imputer),
-    ('scaler', MinMaxScaler())])
-
-# Récupération de la cardinalité des variables
-dimensionality = lambda x,df : df[[x]].apply(pd.Series.nunique).values
-
-# %%
 # # Prétraitement des variables numériques
+
 numeric_feats = train.select_dtypes(['int64', 'float64']).columns.tolist()
 
 for feat in credit_info_feats + ['OWN_CAR_AGE']:
@@ -97,6 +81,10 @@ for feat in credit_info_feats + ['OWN_CAR_AGE']:
 flag_names = ['FLAG', 'REG_', 'LIVE']
 flags = [feat for feat in numeric_feats if feat[:4] in flag_names]
 categor_encoded_feats = []
+
+# Récupération de la cardinalité des variables
+dimensionality = lambda x,df : df[[x]].apply(pd.Series.nunique).values
+
 for feat in numeric_feats:
     if feat not in flags:
         if dimensionality(feat,train) <= 2:
@@ -109,7 +97,6 @@ for flag in flags:
 
 categor_encoded_prepro = Pipeline([
     ('imputer', SimpleImputer(strategy='most_frequent'))])
-
 
 numeric_avg_feats = []
 numeric_med_feats = []
@@ -131,32 +118,11 @@ assert len(numeric_feats) == len(numeric_avg_feats)\
                              + len(numeric_mod_feats)\
                              + len(other_numeric_feats)
 
-numeric_avg_imputer = SimpleImputer(strategy='mean')
-numeric_med_imputer = SimpleImputer(strategy='median')
-numeric_mod_imputer = SimpleImputer(strategy='most_frequent')
-numeric_def_imputer = SimpleImputer(strategy='median')
-
-numeric_avg_prepro = Pipeline(steps=[
-    ('imputer', numeric_avg_imputer),
-    ('scaler', MinMaxScaler())])
-
-numeric_med_prepro = Pipeline(steps=[
-    ('imputer', numeric_med_imputer),
-    ('scaler', MinMaxScaler()) ])
-
-numeric_mod_prepro = Pipeline(steps=[
-    ('imputer', numeric_mod_imputer),
-    ('scaler', MinMaxScaler())])
-
-numeric_def_prepro = Pipeline(steps=[
-    ('imputer', numeric_def_imputer),
-    ('scaler', MinMaxScaler())])
-
-# %%
 # # Prétraitement des variables catégoriques
 
 categor_feats = train.select_dtypes('object').columns.tolist()
 categor_feats.remove('FLAG_OWN_CAR')
+
 # Division entre les catégories dites "binaires" (les flags)
 # et les catégories multi dimensionnelles
 categor_ordinal_feats = []
@@ -213,27 +179,14 @@ categor_ordinal_prepro = Pipeline(steps=[
                                    strategy='most_frequent')),
     ('encoder', OrdinalEncoder(categories=categories))])
 
-# %%
 # # Pipeline prétraitement finale
 preprocessor = make_column_transformer(
-    (credit_info_prepro, credit_info_feats),
-    (car_info_prepro, car_info_feats),
-    (numeric_def_prepro, other_numeric_feats),
-    (numeric_avg_prepro, numeric_avg_feats),
-    (numeric_med_prepro, numeric_med_feats),
-    (numeric_mod_prepro, numeric_mod_feats),
-    (categor_ordinal_prepro, categor_ordinal_feats),
-    (categor_encoded_prepro, categor_encoded_feats),
-    (categor_one_hot_prepro, categor_one_hot_feats),
-    remainder='passthrough')
-
-preprocessor_no_scaler = make_column_transformer(
-    (credit_info_imputer, credit_info_feats),
-    (car_info_imputer, car_info_feats),
-    (numeric_def_imputer, other_numeric_feats),
-    (numeric_avg_imputer, numeric_avg_feats),
-    (numeric_med_imputer, numeric_med_feats),
-    (numeric_mod_imputer, numeric_mod_feats),
+    (CreditInfosImputer(), credit_info_feats),
+    (CarInfosImputer(), car_info_feats),
+    (SimpleImputer(strategy='median'), other_numeric_feats),
+    (SimpleImputer(strategy='mean'), numeric_avg_feats),
+    (SimpleImputer(strategy='median'), numeric_med_feats),
+    (SimpleImputer(strategy='most_frequent'), numeric_mod_feats),
     (categor_ordinal_prepro, categor_ordinal_feats),
     (categor_encoded_prepro, categor_encoded_feats),
     (categor_one_hot_prepro, categor_one_hot_feats),
