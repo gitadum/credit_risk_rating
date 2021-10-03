@@ -185,14 +185,12 @@ def format_categor_values(x):
     y = y.replace(',', '_or').replace('/', 'or')
     return y
 
-format_vfunc = np.vectorize(format_categor_values)
-categor_one_hot_value_formatter = FunctionTransformer(lambda x: format_vfunc(x))
-
 categor_one_hot_prepro = Pipeline(steps=[
     ('nan_imputer', SimpleImputer(strategy='constant', fill_value='Unknown')),
     ('xna_imputer', SimpleImputer(missing_values='XNA', strategy='constant',
                                   fill_value='Unknown')),
-    ('value_formatter', categor_one_hot_value_formatter),
+    ('formatter', FunctionTransformer(lambda x:
+                                      np.vectorize(format_categor_values)(x))),
     ('encoder', OneHotEncoder(handle_unknown='ignore'))])
 
 # ## Prétraitement des variables catégoriques "binaires" (bi-dimensionnelles)
