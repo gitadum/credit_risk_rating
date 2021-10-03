@@ -62,14 +62,18 @@ class CarInfosImputer(BaseEstimator, TransformerMixin):
         return None
     
     def fit(self, X, y=None):
+        mapper = {'N': 0, 'Y': 1}
+        X.FLAG_OWN_CAR.replace(mapper, inplace=True)
         median_car_age = X.OWN_CAR_AGE.median()
-        X.loc[X.FLAG_OWN_CAR == 'N', 'OWN_CAR_AGE'] = -1.0
+        X.loc[X.FLAG_OWN_CAR == 0, 'OWN_CAR_AGE'] = -1.0
         X.OWN_CAR_AGE.fillna(median_car_age, inplace=True)
         return self
     
     def transform(self, X):
+        mapper = {'N': 0, 'Y': 1}
+        X.FLAG_OWN_CAR.replace(mapper, inplace=True)
         median_car_age = X.OWN_CAR_AGE.median()
-        X.loc[X.FLAG_OWN_CAR == 'N', 'OWN_CAR_AGE'] = -1.0
+        X.loc[X.FLAG_OWN_CAR == 0, 'OWN_CAR_AGE'] = -1.0
         X.OWN_CAR_AGE.fillna(median_car_age, inplace=True)
         return X
 
@@ -87,6 +91,9 @@ dimensionality = lambda x,df : df[[x]].apply(pd.Series.nunique).values
 # # Prétraitement des variables numériques
 numeric_feats = train.select_dtypes(['int64', 'float64']).columns.tolist()
 
+for feat in credit_info_feats + ['OWN_CAR_AGE']:
+    numeric_feats.remove(feat)
+
 flag_names = ['FLAG', 'REG_', 'LIVE']
 flags = [feat for feat in numeric_feats if feat[:4] in flag_names]
 categor_encoded_feats = []
@@ -103,8 +110,6 @@ for flag in flags:
 categor_encoded_prepro = Pipeline([
     ('imputer', SimpleImputer(strategy='most_frequent'))])
 
-for feat in credit_info_feats:
-    numeric_feats.remove(feat)
 
 numeric_avg_feats = []
 numeric_med_feats = []
@@ -151,6 +156,7 @@ numeric_def_prepro = Pipeline(steps=[
 # # Prétraitement des variables catégoriques
 
 categor_feats = train.select_dtypes('object').columns.tolist()
+categor_feats.remove('FLAG_OWN_CAR')
 # Division entre les catégories dites "binaires" (les flags)
 # et les catégories multi dimensionnelles
 categor_ordinal_feats = []
@@ -201,7 +207,7 @@ yes_or_no = ['No', 'Yes']
 genders = ['M', 'F']
 weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
             'FRIDAY', 'SATURDAY', 'SUNDAY']
-categories = [contract_types, y_or_n, y_or_n, yes_or_no, genders, weekdays]
+categories = [contract_types, y_or_n, yes_or_no, genders, weekdays]
 
 categor_ordinal_prepro = Pipeline(steps=[
     ('nan_imputer', SimpleImputer(strategy='most_frequent')),
