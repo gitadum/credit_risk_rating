@@ -2,40 +2,93 @@
 # -*- coding: utf-8 -*-
 
 # %%
+# Importations
+import dill
+#import joblib
+
+# Bibliothèques utiles
 import pandas as pd
+import numpy as np
+
+# Prétraitements
+import preprocessing
+from imblearn.pipeline import Pipeline
+from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import make_pipeline
-from sklearn.ensemble import RandomForestClassifier
-from preprocessing import preprocessor as prep
-from preprocessing import get_preprocessed_set_column_names as get_feat_names
+
+# Machine Learning
+from lightgbm import LGBMClassifier
+from modelling_funcs import model_eval
+#from final_model import FinalClassifier
+from sklearn.metrics import recall_score, precision_score
+
+#from styles import *
 
 #%%
-train = pd.read_csv('02_data/application_train.csv')
-test = pd.read_csv('02_data/application_test.csv')
+# Chargement des jeux de données d'apprentissage
+train = pd.read_csv('02_data/application_train.csv', index_col=0)
+test = pd.read_csv('02_data/application_test.csv', index_col=0)
 
-id_error_msg = lambda x: '`SK_ID_CURR` is not unic for {} set!'.format(x)
-assert len(train.SK_ID_CURR.unique()) == train.shape[0], id_error_msg('train')
-assert len(test.SK_ID_CURR.unique()) == test.shape[0], id_error_msg('test')
-train.set_index('SK_ID_CURR', inplace=True)
-test.set_index('SK_ID_CURR', inplace=True)
+print('Training set dimensions :', train.shape)
+df = train.copy()
+
+cls_size = df.TARGET.value_counts()
+cls_freq = df.TARGET.value_counts(normalize=True)
+print(pd.DataFrame({'size': cls_size,
+                    'freq': cls_freq.apply(lambda x: '%.2f' % x)}))
 
 X, y = train.iloc[:, 1:], train.iloc[:, 0]
 
 # %%
-
-X_transformed = prep.fit_transform(X)
-#test_preprocessed = preprocessor.transform(test)
-
-print(X_transformed.shape)
+# Séparation du jeu de données entre entraînement et évaluation
+#r = 42
+X_train, X_test, y_train, y_test = train_test_split(df.iloc[:,1:], df.iloc[:,0],
+                                                    test_size=.2)
+#                                                     random_state=r)
 # %%
-df = pd.DataFrame(X_transformed, columns=get_feat_names(prep))
+# Définition de la pipeline de modélisation finale
+undersampler = RandomUnderSampler()
+
+best_model_params = {'boosting_type': 'gbdt',
+                     'class_weight': None,
+                     'colsample_bytree': 0.8736655622105718,
+                     'importance_type': 'split',
+                     'learning_rate': 0.1,
+                     'max_depth': -1,
+                     'min_child_samples': 80,
+                     'min_child_weight': 100.0,
+                     'min_split_gain': 0.0,
+                     'n_estimators': 373,
+                     'n_jobs': -1,
+                     'num_leaves': 12,
+                     'objective': None,
+                     'random_state': None,
+                     'reg_alpha': 16,
+                     'reg_lambda': 21,
+                     'silent': True,
+                     'subsample': 0.7981160065359487,
+                     'subsample_for_bin': 200000,
+                     'subsample_freq': 0}
+
+model = Pipeline([('u', undersampler),
+                  ('p', preprocessing.preprocessor),
+                  ('m', LGBMClassifier(**best_model_params))])
 # %%
-model = make_pipeline(prep, RandomForestClassifier())
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+# Entraînement du modèle final
 model.fit(X_train, y_train)
 # %%
-model.get_params()
+# Évaluation du modèle final
+model_eval(model, X_test, y_test)
+# %%
+# Sérialisation du modèle final
+with open('HomeCredit_DefaultRiskModel', 'wb') as f:
+    dill.dump(model, f)
+# %%
+with open('HomeCredit_DefaultRiskModel', 'rb') as f:
+    loaded_model = dill.load(f)
 
 # %%
-y_pred = model.predict(X_test)
+loaded_model.predict(X_test)
+# %%
+loaded_model.predict_proba(X_test)
 # %%
