@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import FunctionTransformer
-from sklearn.compose import make_column_transformer
+from sklearn.compose import ColumnTransformer
 from preprocess_funcs import get_feature_names
 
 try:
@@ -180,19 +180,18 @@ categor_ordinal_prepro = Pipeline(steps=[
     ('encoder', OrdinalEncoder(categories=categories))])
 
 # # Pipeline prétraitement finale
-preprocessor = make_column_transformer(
-    (CreditInfosImputer(), credit_info_feats),
-    (CarInfosImputer(), car_info_feats),
-    (SimpleImputer(strategy='median'), other_numeric_feats),
-    (SimpleImputer(strategy='mean'), numeric_avg_feats),
-    (SimpleImputer(strategy='median'), numeric_med_feats),
-    (SimpleImputer(strategy='most_frequent'), numeric_mod_feats),
-    (categor_ordinal_prepro, categor_ordinal_feats),
-    (categor_encoded_prepro, categor_encoded_feats),
-    (categor_one_hot_prepro, categor_one_hot_feats),
+preprocessor = ColumnTransformer([
+    ('creditinfosimputer', CreditInfosImputer(), credit_info_feats),
+    ('carinfosimputer', CarInfosImputer(), car_info_feats),
+    ('stdnumimputer', SimpleImputer(strategy='median'), other_numeric_feats),
+    ('avgimputer', SimpleImputer(strategy='mean'), numeric_avg_feats),
+    ('medimputer', SimpleImputer(strategy='median'), numeric_med_feats),
+    ('modimputer', SimpleImputer(strategy='most_frequent'), numeric_mod_feats),
+    ('categor_ordinal', categor_ordinal_prepro, categor_ordinal_feats),
+    ('categor_encoded', categor_encoded_prepro, categor_encoded_feats),
+    ('categor_one_hot', categor_one_hot_prepro, categor_one_hot_feats)],
     remainder='passthrough')
 
-# %%
 def get_preprocessed_set_column_names(X):
     prepro_col_names = get_feature_names(X)
     onehot_feat_renaming = {
