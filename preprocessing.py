@@ -32,15 +32,13 @@ class CreditInfosImputer(BaseEstimator, TransformerMixin):
         return None
     
     def fit(self, X, y=None):
-        decimal = lambda x: round(x, 1)
-        X.AMT_ANNUITY.fillna(decimal(X.AMT_CREDIT * .05), inplace=True)
-        X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90), inplace=True)
+        X.AMT_ANNUITY.fillna(round(X.AMT_CREDIT * .05, 1), inplace=True)
+        X.AMT_GOODS_PRICE.fillna(round(X.AMT_CREDIT * .90, 1), inplace=True)
         return self
     
     def transform(self, X):
-        decimal = lambda x: round(x, 1)
-        X.AMT_ANNUITY.fillna(decimal(X.AMT_CREDIT * .05), inplace=True)
-        X.AMT_GOODS_PRICE.fillna(decimal(X.AMT_CREDIT * .90), inplace=True)
+        X.AMT_ANNUITY.fillna(round(X.AMT_CREDIT * .05, 1), inplace=True)
+        X.AMT_GOODS_PRICE.fillna(round(X.AMT_CREDIT * .90, 1), inplace=True)
         return X
 
 credit_info_feats = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE']
