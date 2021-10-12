@@ -192,7 +192,7 @@ categor_one_hot_prepro = Pipeline(steps=[
 contract_types = ['Cash loans', 'Revolving loans']
 y_or_n = ['N', 'Y']
 yes_or_no = ['No', 'Yes']
-genders = ['M', 'F']
+genders = ['F', 'M']
 weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
             'FRIDAY', 'SATURDAY', 'SUNDAY']
 categories = [contract_types, y_or_n, yes_or_no, genders, weekdays]
@@ -222,7 +222,7 @@ def get_preprocessed_set_column_names(X):
         k:v for k,v in zip(range(len(categor_one_hot_feats)),
                            categor_one_hot_feats)
                            }
-    column_names = []
+    col_names = []
     for col_name in prepro_col_names:
         if col_name == 'TARGET':
             new_col_name = col_name
@@ -233,5 +233,10 @@ def get_preprocessed_set_column_names(X):
                     new_col_name = onehot_feat_renaming[i] + new_col_name[1:]
         else:
             new_col_name = col_name.split('__')[1]
-        column_names.append(new_col_name)
-    return column_names
+        col_names.append(new_col_name)
+        for i in range(len(col_names)):
+            if col_names[i] == 'CODE_GENDER':
+                col_names[i] = 'GENDER_male'
+            elif col_names[i] == 'NAME_CONTRACT_TYPE':
+                col_names[i] = 'CONTRACT_TYPE_revolving_loan'
+    return col_names
