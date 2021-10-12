@@ -7,7 +7,6 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
-from sklearn.preprocessing import FunctionTransformer
 from sklearn.compose import ColumnTransformer
 from preprocess_funcs import get_feature_names
 
@@ -149,12 +148,39 @@ def format_categor_values(x):
     y = y.replace(',', '_or').replace('/', 'or')
     return y
 
+class OneHotColsImputer(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        return None
+    
+    def fit(self, X, y=None):
+        for col in X.columns.tolist():
+            X[col].fillna('Unknown', inplace=True)
+            X[col].replace('XNA', 'Unknown', inplace=True)
+        return self
+    
+    def transform(self, X):
+        for col in X.columns.tolist():
+            X[col].fillna('Unknown', inplace=True)
+            X[col].replace('XNA', 'Unknown', inplace=True)
+        return X
+
+class OneHotColsFormatter(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        return None
+    
+    def fit(self, X, y=None):
+        for col in X.columns.tolist():
+            X[col] = X[col].apply(format_categor_values)
+        return self
+    
+    def transform(self, X):
+        for col in X.columns.tolist():
+            X[col] = X[col].apply(format_categor_values)
+        return X
+
 categor_one_hot_prepro = Pipeline(steps=[
-    ('nan_imputer', SimpleImputer(strategy='constant', fill_value='Unknown')),
-    ('xna_imputer', SimpleImputer(missing_values='XNA', strategy='constant',
-                                  fill_value='Unknown')),
-    ('formatter', FunctionTransformer(lambda x:
-                                      np.vectorize(format_categor_values)(x))),
+    ('imputer', OneHotColsImputer()),
+    ('formatter', OneHotColsFormatter()),
     ('encoder', OneHotEncoder(handle_unknown='ignore'))])
 
 # ## Prétraitement des variables catégoriques "binaires" (bi-dimensionnelles)
