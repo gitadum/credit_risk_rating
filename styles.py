@@ -39,8 +39,12 @@ savefig = {'facecolor': 'white', 'dpi': 96}
 
 # Fonction qui permet d'exporter automatiquement un graphique en fichier image
 def figsave(fig, filename):
-    fig.tight_layout()    
-    fig.savefig(prez_path + filename, facecolor='none')
-    fig.savefig(chart_path + filename, **savefig)
+    fig.tight_layout()
+    try:
+        fig.savefig(prez_path + filename, facecolor='none')
+        fig.savefig(chart_path + filename, **savefig)
+    except FileNotFoundError:
+        fig.savefig('../' + prez_path + filename, facecolor='none')
+        fig.savefig('../' + chart_path + filename, **savefig)
 
 line_decor = 8 * '-'
