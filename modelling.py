@@ -3,15 +3,14 @@
 
 # %%
 # Importations
-import dill
-#import joblib
+import joblib
 
 # Bibliothèques utiles
 import pandas as pd
 import numpy as np
 
 # Prétraitements
-import preprocessing
+from preprocessing import preprocessor
 from imblearn.pipeline import Pipeline
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
@@ -19,8 +18,7 @@ from sklearn.model_selection import train_test_split
 # Machine Learning
 from lightgbm import LGBMClassifier
 from modelling_funcs import model_eval
-#from final_model import FinalClassifier
-from sklearn.metrics import recall_score, precision_score
+#from sklearn.metrics import recall_score, precision_score
 
 #from styles import *
 
@@ -71,7 +69,7 @@ best_model_params = {'boosting_type': 'gbdt',
                      'subsample_freq': 0}
 
 model = Pipeline([('u', undersampler),
-                  ('p', preprocessing.preprocessor),
+                  ('p', preprocessor),
                   ('m', LGBMClassifier(**best_model_params))])
 # %%
 # Entraînement du modèle final
@@ -79,16 +77,14 @@ model.fit(X_train, y_train)
 # %%
 # Évaluation du modèle final
 model_eval(model, X_test, y_test)
-# %%
-# Sérialisation du modèle final
-with open('HomeCredit_DefaultRiskModel', 'wb') as f:
-    dill.dump(model, f)
-# %%
-with open('HomeCredit_DefaultRiskModel', 'rb') as f:
-    loaded_model = dill.load(f)
 
+# %%
+# Sérialisation du modèle final avec joblib
+joblib.dump(model, 'HomeCredit_DefaultRisk.pkl')
+# %%
+# Chargement du modèle sérialisé
+loaded_model = joblib.load('HomeCredit_DefaultRisk.pkl')
 # %%
 loaded_model.predict(X_test)
 # %%
 loaded_model.predict_proba(X_test)
-# %%
