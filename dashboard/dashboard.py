@@ -32,6 +32,10 @@ def request_prediction(model_uri, customer_id):
 
 API_URI = 'http://127.0.0.1:5000/predict'
 
+
+# Use the full page instead of a narrow central column
+st.set_page_config(layout="wide")
+
 def st_shap(plot, height=None):
     shap_html = f"<head>{shap.getjs()}</head><body>{plot.html()}</body>"
     components.html(shap_html, height=height)
@@ -54,7 +58,7 @@ if predict_btn:
         pred_final = model_prediction['predict_final']
         pred_final_fr = {'Favorable': 'Acceptable', 'Unfavorable': 'Critique'}
         pred_proba = model_prediction['predict_proba']
-        prediction, explanation = st.columns(2)
+        prediction, explanation = st.columns([1,2])
         
         with prediction:
             st.header('Modélisation du risque de crédit :')
