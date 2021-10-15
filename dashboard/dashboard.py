@@ -58,6 +58,8 @@ if predict_btn:
         pred_final = model_prediction['predict_final']
         pred_final_fr = {'Favorable': 'Acceptable', 'Unfavorable': 'Critique'}
         pred_proba = model_prediction['predict_proba']
+        colormap = plt.get_cmap('RdBu_r')
+        color = colormap(pred_proba)
         prediction, explanation = st.columns([1,2])
         
         with prediction:
@@ -69,7 +71,7 @@ if predict_btn:
     #            plt.draw()
                 pie_sizes =[pred_proba, 1 - pred_proba]
                 # Create a pieplot
-                plt.pie(pie_sizes, colors=['blue', 'grey'])
+                plt.pie(pie_sizes, colors=[color, 'grey'])
                 # add a circle at the center to transform it in a donut chart
                 my_circle=plt.Circle( (0,0), 0.7, color='white')
                 p=plt.gcf()
@@ -94,8 +96,9 @@ if predict_btn:
             for col in ['EXT_SOURCE_1','EXT_SOURCE_2', 'EXT_SOURCE_3',
                         'AMT_GOODS_PRICE', 'AMT_CREDIT']:
                 if expl[col]['value'] != np.nan:
-                    statmnt = '{}: {:.1f}%'.format(col,
-                                                   abs(expl[col]['gap_pct']*100.0))
+                    statmnt = '**{}**: {:.0f}%'.format(col,
+                                                       abs(expl[col]['gap_pct']\
+                                                           * 100.0))
                     if expl[col]['gap_pct'] >= 0.0:
                         following = 'plus élevé que la médiane des demandes.'
                     else:
