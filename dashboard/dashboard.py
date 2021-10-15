@@ -1,10 +1,18 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+sys.path.append('..')
+
 import streamlit as st
+import streamlit.components.v1 as components
+import shap
 import requests
 import matplotlib.pyplot as plt
 from json.decoder import JSONDecodeError
+from api.api import explain_prediction
+from IPython.display import display
+
 
 def request_prediction(model_uri, customer_id):
     r = requests.post(url=model_uri, data={'sk_id_curr': customer_id})
@@ -24,6 +32,10 @@ def request_prediction(model_uri, customer_id):
 
 API_URI = 'http://127.0.0.1:5000/predict'
 
+def st_shap(plot, height=None):
+    shap_html = f"<head>{shap.getjs()}</head><body>{plot.html()}</body>"
+    components.html(shap_html, height=height)
+
 st.title('PretADepenser - KYC Dashboard')
 
 st.header('Demande de prêt')
@@ -38,10 +50,11 @@ if predict_btn:
     elif model_prediction['status_code'] != 200:
         st.write('Une erreur s\'est produite.')
     else:
+        model_explanation = explain_prediction(int(id_input))
         pred_final = model_prediction['predict_final']
         pred_final_fr = {'Favorable': 'Acceptable', 'Unfavorable': 'Critique'}
         pred_proba = model_prediction['predict_proba']
-        prediction, explanation, customer_infos = st.columns(3)
+        prediction, explanation = st.columns(2)
         
         with prediction:
             st.header('Modélisation du risque de crédit :')
@@ -72,7 +85,7 @@ if predict_btn:
         
         with explanation:
             st.header('Facteurs de prédiction')
-    #       st.pyplot(customer_explain['force'])
+            st_shap(model_explanation['force'])
 
-        with customer_infos:
-            st.header('Informations sur l\'emprunteur')
+#        with customer_infos:
+#            st.header('Informations sur l\'emprunteur')
