@@ -64,12 +64,16 @@ def explain_prediction(id):
     explainer = shap.TreeExplainer(model['m'])
     shap_values = explainer.shap_values(Xp)
     result['id'] = id
-    result['force'] = shap.force_plot(explainer.expected_value[1],
+    force_plot = shap.force_plot(explainer.expected_value[1],
                                       shap_values[1][0,:], Xp[0,:],
-                                      feature_names=feature_names)
-    result['decision'] = shap.decision_plot(explainer.expected_value[1],
-                                            shap_values[1],
-                                            feature_names=feature_names)
+                                      feature_names=feature_names,)
+#                                      matplotlib=True)
+#    decision_plot = shap.decision_plot(explainer.expected_value[1],
+#                                            shap_values[1],
+#                                            feature_names=feature_names)
+#    result['decision'] = decision_plot
+    result['force'] = force_plot
+
     result['status_code'] = 200
     return result
 
