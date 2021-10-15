@@ -7,11 +7,11 @@ sys.path.append('..')
 import streamlit as st
 import streamlit.components.v1 as components
 import shap
+import numpy as np
 import requests
 import matplotlib.pyplot as plt
 from json.decoder import JSONDecodeError
 from api.api import explain_prediction
-from IPython.display import display
 
 
 def request_prediction(model_uri, customer_id):
@@ -54,7 +54,7 @@ if predict_btn:
     elif model_prediction['status_code'] != 200:
         st.write('Une erreur s\'est produite.')
     else:
-        model_explanation = explain_prediction(int(id_input))
+        expl = explain_prediction(int(id_input))
         pred_final = model_prediction['predict_final']
         pred_final_fr = {'Favorable': 'Acceptable', 'Unfavorable': 'Critique'}
         pred_proba = model_prediction['predict_proba']
@@ -89,7 +89,24 @@ if predict_btn:
         
         with explanation:
             st.header('Facteurs de prédiction', anchor='predict-factors')
-            st_shap(model_explanation['force'])
+            st_shap(expl['force'])
+#            st.write(expl)
+            for col in ['EXT_SOURCE_1','EXT_SOURCE_2', 'EXT_SOURCE_3',
+                        'AMT_GOODS_PRICE', 'AMT_CREDIT']:
+                if expl[col]['value'] != np.nan:
+                    statmnt = '{}: {:.1f}%'.format(col,
+                                                   abs(expl[col]['gap_pct']*100.0))
+                    if expl[col]['gap_pct'] >= 0.0:
+                        following = 'plus élevé que la médiane des demandes.'
+                    else:
+                        following = 'moins élevé que la médiane des demandes.'
+                    st.write(statmnt + ' ' + following)
+                else:
+                    st.write('{}: valeur inconnue.'.format(col))
+#            st.write(type(expl['EXT_SOURCE_1']['value']))
+#            st.write(type(expl['EXT_SOURCE_2']['value']))
+    #            gap_extsource1 = expl['EXT_SOURCE_1'] - expl['EXT_SOURCE_1_median']
+    #            st.write(gap_extsource1)
 
 #        with customer_infos:
 #            st.header('Informations sur l\'emprunteur')

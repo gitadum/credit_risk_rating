@@ -73,7 +73,13 @@ def explain_prediction(id):
 #                                            feature_names=feature_names)
 #    result['decision'] = decision_plot
     result['force'] = force_plot
-
+    for col in ['EXT_SOURCE_1','EXT_SOURCE_2', 'EXT_SOURCE_3',
+                'AMT_GOODS_PRICE', 'AMT_CREDIT']:
+        result[col] = dict()
+        result[col]['value'] = client_db.loc[id, col]
+        result[col]['median'] = client_db[col].median()
+        result[col]['gap'] = result[col]['value'] - result[col]['median']
+        result[col]['gap_pct'] = result[col]['gap'] / result[col]['median']
     result['status_code'] = 200
     return result
 
