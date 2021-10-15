@@ -61,7 +61,7 @@ if predict_btn:
         prediction, explanation = st.columns([1,2])
         
         with prediction:
-            st.header('Modélisation du risque de crédit :')
+            st.header('Risque de crédit', anchor='credit-risk')
             proba_graph = st.container()
             pred_text = st.container()
             with proba_graph:
@@ -88,7 +88,7 @@ if predict_btn:
             new_simul = st.button('Simuler')
         
         with explanation:
-            st.header('Facteurs de prédiction')
+            st.header('Facteurs de prédiction', anchor='predict-factors')
             st_shap(model_explanation['force'])
 
 #        with customer_infos:
