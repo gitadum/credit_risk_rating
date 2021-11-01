@@ -9,23 +9,27 @@ import numpy as np
 import shap
 from flask import Flask, jsonify, request, render_template
 from preprocessing import get_preprocessed_set_column_names as get_feat_names
+from preprocess_funcs import add_secondary_table_features
+from timer import timer
 
 app = Flask(__name__)
 
-model = joblib.load('../HomeCredit_DefaultRisk.pkl')
+model = joblib.load('../HomeCredit_DefaultRisk.2.pkl')
 shap.initjs()
 
 def final_predict(modl, X, threshold=0.5):
     return np.array(modl.predict_proba(X)[:,1] > threshold, dtype=int)
 
 #ideal_threshold = 0.7560445445897188
-ideal_threshold = 0.6672414786824148
+#ideal_threshold = 0.6672414786824148
+ideal_threshold = 0.6757005832464233
 
 @app.route('/', methods=['GET'])
 def display_main_page():
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
+@timer
 def predict():
     client_db = pd.read_csv('../02_data/application_test.csv', index_col=0)
     id = int(request.form['sk_id_curr'])
@@ -38,6 +42,7 @@ def predict():
     X = pd.DataFrame(client_vals.values.reshape(1,-1),columns=client_db.columns)
     for k,v in client_db.dtypes.items():
         X[k] = X[k].astype(v)
+    X = add_secondary_table_features(X)
     result['id'] = id
     result['predict_proba'] = model.predict_proba(X)[:,1][0]
     prediction = final_predict(model, X, threshold=ideal_threshold)[0]
@@ -59,6 +64,7 @@ def explain_prediction(id):
     X = pd.DataFrame(client_vals.values.reshape(1,-1),columns=client_db.columns)
     for k,v in client_db.dtypes.items():
         X[k] = X[k].astype(v)
+    X = add_secondary_table_features(X)
     Xp = model['p'].transform(X)
     feature_names = get_feat_names(model['p'])
     explainer = shap.TreeExplainer(model['m'])
