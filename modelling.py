@@ -1,13 +1,11 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# %%
 # Importations
 import joblib
 
 # Bibliothèques utiles
 import pandas as pd
-import numpy as np
 
 # Prétraitements
 from preprocessing import preprocessor
@@ -22,7 +20,6 @@ from modelling_funcs import model_eval
 
 #from styles import *
 
-#%%
 # Chargement des jeux de données d'apprentissage
 train = pd.read_csv('02_data/application_train.csv', index_col=0)
 test = pd.read_csv('02_data/application_test.csv', index_col=0)
@@ -37,13 +34,11 @@ print(pd.DataFrame({'size': cls_size,
 
 X, y = train.iloc[:, 1:], train.iloc[:, 0]
 
-# %%
 # Séparation du jeu de données entre entraînement et évaluation
 #r = 42
-X_train, X_test, y_train, y_test = train_test_split(df.iloc[:,1:], df.iloc[:,0],
-                                                    test_size=.2)
-#                                                     random_state=r)
-# %%
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+#                                                   random_state=r)
+
 # Définition de la pipeline de modélisation finale
 undersampler = RandomUnderSampler()
 
@@ -71,20 +66,17 @@ best_model_params = {'boosting_type': 'gbdt',
 model = Pipeline([('u', undersampler),
                   ('p', preprocessor),
                   ('m', LGBMClassifier(**best_model_params))])
-# %%
+
 # Entraînement du modèle final
 model.fit(X_train, y_train)
-# %%
+
 # Évaluation du modèle final
 model_eval(model, X_test, y_test)
 
-# %%
 # Sérialisation du modèle final avec joblib
-joblib.dump(model, 'HomeCredit_DefaultRisk.pkl')
-# %%
+joblib.dump(model, 'model/HomeCredit_DefaultRisk.pkl')
+
 # Chargement du modèle sérialisé
-loaded_model = joblib.load('HomeCredit_DefaultRisk.pkl')
-# %%
+loaded_model = joblib.load('model/HomeCredit_DefaultRisk.pkl')
 loaded_model.predict(X_test)
-# %%
 loaded_model.predict_proba(X_test)
