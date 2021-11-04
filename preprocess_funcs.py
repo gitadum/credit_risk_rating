@@ -139,3 +139,33 @@ class SimpleImputerWithFeatureNames(SimpleImputer):
 
     def get_feature_names(self):
         return self.features
+
+def add_secondary_table_features(df):
+    df = df.copy()
+    try:
+        bur = pd.read_csv('02_data/bureau.csv')
+    except FileNotFoundError:
+        bur = pd.read_csv('../02_data/bureau.csv')
+    idx = 'SK_ID_CURR'
+    days_before_curr_app_mean = np.abs(bur.groupby(idx).DAYS_CREDIT.mean())
+    df['bureau_DAYS_CREDIT_mean'] = df.join(
+        days_before_curr_app_mean, how='left').DAYS_CREDIT
+    df['bureau_DAYS_CREDIT_mean'].fillna(- 1.0, inplace=True)
+    days_before_curr_app_min = np.abs(bur.groupby(idx).DAYS_CREDIT.max())
+    df['bureau_DAYS_CREDIT_min'] = df.join(
+        days_before_curr_app_min, how='left').DAYS_CREDIT
+    df['bureau_DAYS_CREDIT_min'].fillna(- 1.0, inplace=True)
+    n_active_credits = bur[bur.CREDIT_ACTIVE == 'Active'].groupby(idx)\
+                                                         .CREDIT_ACTIVE.count()
+    df['bureau_CREDIT_ACTIVE_count'] = df.join(
+        n_active_credits, how='left').CREDIT_ACTIVE
+    df.bureau_CREDIT_ACTIVE_count.fillna(0, inplace=True)
+    mean_days_cred_overdue = bur.groupby(idx).CREDIT_DAY_OVERDUE.mean()
+    df['bureau_CREDIT_DAY_OVERDUE_mean'] = df.join(
+        mean_days_cred_overdue, how='left').CREDIT_DAY_OVERDUE
+    df['bureau_CREDIT_DAY_OVERDUE_mean'].fillna(0, inplace=True)
+    max_enddate = bur.groupby(idx).DAYS_CREDIT_ENDDATE.max()
+    df['bureau_DAYS_CREDIT_ENDDATE_max'] = df.join(
+        max_enddate, how='left').DAYS_CREDIT_ENDDATE
+    df.bureau_DAYS_CREDIT_ENDDATE_max.fillna(0, inplace=True)
+    return df
