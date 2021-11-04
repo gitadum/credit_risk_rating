@@ -21,7 +21,7 @@ font = {
 title_font = {
     'font': 'Yanone Kaffeesatz',
     'fontweight': 'bold',
-    'fontsize': 24
+    'fontsize': 32
     }
 subtitle_font = {
     'font': 'Yanone Kaffeesatz',
