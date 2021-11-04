@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
@@ -23,6 +22,21 @@ train.drop(columns=['SK_ID_CURR', 'TARGET'], inplace=True)
 
 # Techniques d'imputations spécifiques basées sur pandas
 
+class AgeInfosTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        return None
+    
+    def fit(self, X, y=None):
+        X.loc[:, 'YEARS_AGE'] = - X.loc[:, 'DAYS_BIRTH'] / 365.0
+        X.drop(columns=['DAYS_BIRTH'])
+        return self
+    
+    def transform(self, X):
+        X.loc[:, 'YEARS_AGE'] = - X.loc[:, 'DAYS_BIRTH'] / 365.0
+        X.drop(columns=['DAYS_BIRTH'], inplace=True)
+        return X
+
+
 class CreditInfosImputer(BaseEstimator, TransformerMixin):
     '''Special missing value imputer for loan annuity and good price.
     Assigns 5% of total credit value for annuity.
@@ -33,11 +47,13 @@ class CreditInfosImputer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         X.AMT_ANNUITY.fillna(round(X.AMT_CREDIT * .05, 1), inplace=True)
         X.AMT_GOODS_PRICE.fillna(round(X.AMT_CREDIT * .90, 1), inplace=True)
+        X['CREDIT_TERM'] = X.AMT_ANNUITY / X.AMT_CREDIT
         return self
     
     def transform(self, X):
         X.AMT_ANNUITY.fillna(round(X.AMT_CREDIT * .05, 1), inplace=True)
         X.AMT_GOODS_PRICE.fillna(round(X.AMT_CREDIT * .90, 1), inplace=True)
+        X['CREDIT_TERM'] = X.AMT_ANNUITY / X.AMT_CREDIT
         return X
 
 credit_info_feats = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE']
@@ -72,7 +88,7 @@ car_info_feats = ['FLAG_OWN_CAR', 'OWN_CAR_AGE']
 
 numeric_feats = train.select_dtypes(['int64', 'float64']).columns.tolist()
 
-for feat in credit_info_feats + ['OWN_CAR_AGE']:
+for feat in credit_info_feats + ['OWN_CAR_AGE', 'DAYS_BIRTH']:
     numeric_feats.remove(feat)
 
 flag_names = ['FLAG', 'REG_', 'LIVE']
@@ -205,6 +221,7 @@ categor_ordinal_prepro = Pipeline(steps=[
 
 # # Pipeline prétraitement finale
 preprocessor = ColumnTransformer([
+    ('ageinfostransformer', AgeInfosTransformer(), ['DAYS_BIRTH']),
     ('creditinfosimputer', CreditInfosImputer(), credit_info_feats),
     ('carinfosimputer', CarInfosImputer(), car_info_feats),
     ('stdnumimputer', SimpleImputer(strategy='median'), other_numeric_feats),
@@ -231,12 +248,17 @@ def get_preprocessed_set_column_names(X):
             for i in range(len(categor_one_hot_feats)):
                 if new_col_name[0] == str(i):
                     new_col_name = onehot_feat_renaming[i] + new_col_name[1:]
+        elif col_name[:6] == 'bureau':
+            new_col_name = col_name
         else:
             new_col_name = col_name.split('__')[1]
         col_names.append(new_col_name)
         for i in range(len(col_names)):
-            if col_names[i] == 'CODE_GENDER':
+            if col_names[i] == 'DAYS_BIRTH':
+                col_names[i] = 'YEARS_AGE'
+            elif col_names[i] == 'CODE_GENDER':
                 col_names[i] = 'GENDER_male'
             elif col_names[i] == 'NAME_CONTRACT_TYPE':
                 col_names[i] = 'CONTRACT_TYPE_revolving_loan'
+    col_names.insert(4, 'CREDIT_TERM')
     return col_names
