@@ -16,7 +16,7 @@ from timer import timer
 app = Flask(__name__)
 
 
-model = joblib.load('../model/HomeCredit_DefaultRisk.2.pkl')
+model = joblib.load('../model/HomeCredit_DefaultRisk.pkl')
 
 def final_predict(modl, X, threshold=0.5):
     return np.array(modl.predict_proba(X)[:,1] > threshold, dtype=int)
