@@ -4,26 +4,9 @@
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
 
 import warnings
 warnings.simplefilter(action='ignore', category=UserWarning)
-
-
-class DataframeFunctionTransformer():
-    """FunctionTransformer object that works with pandas DataFrames
-    -------
-    source code : https://queirozf.com/entries/scikit-learn-pipelines-custom-pipelines-and-pandas-integration
-    """
-    def __init__(self, func):
-        self.func = func
-
-    def transform(self, input_df, **transform_params):
-        return self.func(input_df)
-
-    def fit(self, X, y=None, **fit_params):
-        return self
-
 
 def get_feature_names(column_transformer):
     """Get feature names from all transformers.
@@ -67,7 +50,7 @@ def get_feature_names(column_transformer):
             else:
                 return [name + "__" + f for f in column]
 
-        return [name + "__" + f for f in trans.get_feature_names()]
+        return [name + "__" + f for f in trans.get_feature_names_out()]
     
     ### Start of processing
     feature_names = []
@@ -95,50 +78,6 @@ def get_feature_names(column_transformer):
     
     return feature_names
 
-
-class SimpleImputerWithFeatureNames(SimpleImputer):
-    """Thin wrapper around the SimpleImputer that provides get_feature_names()
-    -------
-    source code: https://github.com/benman1/OpenML-Speed-Dating/blob/master/openml_speed_dating_pipeline_steps/openml_speed_dating_pipeline_steps.py
-    """
-    def __init__(self, missing_values=np.nan, strategy="mean",
-                 fill_value=None, verbose=0, copy=True):
-        super(SimpleImputerWithFeatureNames, self).__init__(
-            missing_values, strategy, fill_value, verbose,
-            copy, add_indicator=True
-        )
-
-    def fit(self, X, y=None):
-        super().fit(X, y)
-        if isinstance(X, (pd.DataFrame, pd.Series)):
-            self.features = list(X.columns)
-        else:
-            self.features = list(range(X.shape[1]))
-        return self
-  
-    def transform(self, X):
-        """Impute all missing values in X. Returns a DataFrame if given
-        a DataFrame.
-        
-        Parameters
-        ----------
-        X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            The input data to complete.
-        """
-        X2 = super().transform(X)
-        if isinstance(X, (pd.DataFrame, pd.Series)):
-            return pd.DataFrame(
-                data=X2, 
-                columns=self.get_feature_names()
-            )
-        else:
-            return X2
-    
-    def get_features_with_missing(self):
-        return [self.features[f] for f in self.indicator_.features_]
-
-    def get_feature_names(self):
-        return self.features
 
 def add_secondary_table_features(df):
     df = df.copy()

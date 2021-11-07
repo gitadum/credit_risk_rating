@@ -233,23 +233,33 @@ preprocessor = ColumnTransformer([
     ('categor_one_hot', categor_one_hot_prepro, categor_one_hot_feats)],
     remainder='passthrough')
 
+from preprocess_funcs import get_feature_names
+
 def get_preprocessed_set_column_names(X):
     prepro_col_names = get_feature_names(X)
+
+    remainder_cols = []
+    for f in X.feature_names_in_:
+        if f not in [item for sublist in X._columns for item in sublist]:
+            remainder_cols.append(f)
+    
     onehot_feat_renaming = {
-        k:v for k,v in zip(range(len(categor_one_hot_feats)),
-                           categor_one_hot_feats)
+        k:v for k,v in zip(range(len(X.transformers_[-2][2])),
+                           X.transformers_[-2][2])
                            }
     col_names = []
+    k = 0
     for col_name in prepro_col_names:
         if col_name == 'TARGET':
             new_col_name = col_name
         elif col_name[:10] == 'encoder__x':
             new_col_name = col_name.replace('encoder__x', '')
-            for i in range(len(categor_one_hot_feats)):
+            for i in range(len(X.transformers_[-2][2])):
                 if new_col_name[0] == str(i):
                     new_col_name = onehot_feat_renaming[i] + new_col_name[1:]
-        elif col_name[:6] == 'bureau':
-            new_col_name = col_name
+        elif col_name[0] == 'x' and float(col_name[1:]).is_integer() is True:
+            new_col_name = remainder_cols[k]
+            k += 1
         else:
             new_col_name = col_name.split('__')[1]
         col_names.append(new_col_name)
