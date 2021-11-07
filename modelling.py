@@ -3,12 +3,15 @@
 
 # Importations
 import joblib
+import gc
+gc.enable()
 
 # Bibliothèques utiles
 import pandas as pd
 
 # Prétraitements
 from preprocessing import preprocessor
+from preprocess_funcs import add_secondary_table_features
 from imblearn.pipeline import Pipeline
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
@@ -32,6 +35,10 @@ cls_freq = df.TARGET.value_counts(normalize=True)
 print(pd.DataFrame({'size': cls_size,
                     'freq': cls_freq.apply(lambda x: '%.2f' % x)}))
 
+del cls_size, cls_freq
+gc.collect()
+
+df = add_secondary_table_features(df)
 X, y = train.iloc[:, 1:], train.iloc[:, 0]
 
 # Séparation du jeu de données entre entraînement et évaluation
