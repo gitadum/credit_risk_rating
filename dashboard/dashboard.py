@@ -27,7 +27,6 @@ def request_prediction(model_uri, customer_id):
 
 API_URI = 'http://127.0.0.1:5000/predict'
 
-
 # Use the full page instead of a narrow central column
 st.set_page_config(layout="wide")
 
@@ -56,7 +55,7 @@ predict_btn = st.button('Visualiser')
 
 if predict_btn:
     api_req = request_prediction(API_URI, id_input)
-#    st.write(api_req) # debug
+    #st.write(api_req) # debug
     if api_req['status_code'] == 404:
         st.write('La demande de prêt n\'est pas présente dans la base.')
     elif api_req['status_code'] != 200:

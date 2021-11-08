@@ -29,6 +29,7 @@ ideal_threshold = 0.6757005832464233
 @timer
 def get_app_details(id):
     app_db = pd.read_csv('../02_data/application_test.csv', index_col=0)
+    app_db = add_secondary_table_features(app_db)
     result = {}
     try:
         client_vals = app_db.loc[id, :]
@@ -38,7 +39,6 @@ def get_app_details(id):
     X = pd.DataFrame(client_vals.values.reshape(1,-1),columns=app_db.columns)
     for k,v in app_db.dtypes.items():
         X[k] = X[k].astype(v)
-    X = add_secondary_table_features(X)
     result['id'] = id
     result['app_db'] = app_db
     Xp = model['p'].transform(X)
@@ -64,17 +64,36 @@ def predict():
         result['status_code'] = d['status_code']
         return result
     result['id'] = d['id']
-    result['default_proba'] = model.predict_proba(d['X'])[:,1][0]
+    result['default_proba'] = float(model.predict_proba(d['X'])[:,1][0])
     result['risk'] = int(final_predict(model, d['X'], ideal_threshold)[0])
 
-    for col in ['EXT_SOURCE_1','EXT_SOURCE_2', 'EXT_SOURCE_3',
-                'AMT_GOODS_PRICE', 'AMT_CREDIT']:
+    for col in list(d['app_db'].columns):
         result[col] = dict()
         result[col]['value'] = d['app_db'].loc[id, col]
-        result[col]['median'] = d['app_db'][col].median()
-        result[col]['gap'] = result[col]['value'] - result[col]['median']
-        result[col]['gap_pct'] = result[col]['gap'] / result[col]['median']
+        if d['app_db'][col].dtype in ['float64', 'int64']:
+            if type(result[col]['value']) == np.int64:
+                result[col]['value'] = int(result[col]['value'])
+            elif type(result[col]['value']) == np.float64:
+                result[col]['value'] = float(result[col]['value'])
+            result[col]['median'] = float(d['app_db'][col].median())
+            result[col]['gap'] = result[col]['value'] - result[col]['median']
+            if result[col]['median'] != 0.0:
+                result[col]['gap_pct'] = result[col]['gap'] \
+                                       / result[col]['median']
+            else:
+                result[col]['gap_pct'] = np.nan
+    
     result['status_code'] = 200
+    
+    # debug: check type of result entries
+    # numpy arrays are not jsonifiable
+    # for key in result:
+    #     if type(result[key]) == dict:
+    #         for k,v in result[key].items():
+    #             print(key, k, type(v))
+    #     else:
+    #         print(key, type(result[key]))
+    
     return jsonify(result)
 
 
