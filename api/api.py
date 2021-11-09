@@ -15,7 +15,8 @@ from timer import timer
 
 app = Flask(__name__)
 
-
+app_db = pd.read_csv('../02_data/application_test.csv', index_col=0)
+app_db = add_secondary_table_features(app_db)
 model = joblib.load('../model/HomeCredit_DefaultRisk.pkl')
 
 def final_predict(modl, X, threshold=0.5):
@@ -28,8 +29,6 @@ ideal_threshold = 0.6757005832464233
 #@app.route('/app_details', methods=['POST'])
 @timer
 def get_app_details(id):
-    app_db = pd.read_csv('../02_data/application_test.csv', index_col=0)
-    app_db = add_secondary_table_features(app_db)
     result = {}
     try:
         client_vals = app_db.loc[id, :]
