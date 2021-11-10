@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import streamlit as st
-from api.api import app_db
+from api.app import app_db
 
 #@st.cache(suppress_st_warning=True)
 def display_customerbase():

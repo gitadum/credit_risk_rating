@@ -9,7 +9,7 @@ from matplotlib.colors import LinearSegmentedColormap
 
 import requests
 from json import JSONDecodeError
-from api.api import get_app_details
+from api.app import get_app_details
 
 from math import floor
 
