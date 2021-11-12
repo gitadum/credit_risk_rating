@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+sys.path.append('..')
+
 import streamlit as st
 import streamlit.components.v1 as components
 import shap

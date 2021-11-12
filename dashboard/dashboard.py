@@ -1,9 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path.append('..')
-
 import streamlit as st
 from customer import customer_dashboard
 from customer_base import display_customerbase
