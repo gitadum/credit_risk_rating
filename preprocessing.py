@@ -8,14 +8,9 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.compose import ColumnTransformer
 from preprocess_funcs import get_feature_names
+from load_files import load_dataset
 
-try:
-    train = pd.read_csv('02_data/application_train.csv')
-except FileNotFoundError:
-    try:
-        train = pd.read_csv('../02_data/application_train.csv')
-    except FileNotFoundError:
-        raise FileNotFoundError('train data not found in the data directory')
+train = load_dataset('application_train.csv')
 
 # On supprime la colonne d'index et la colonne de la variable cible
 train.drop(columns=['SK_ID_CURR', 'TARGET'], inplace=True)

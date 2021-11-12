@@ -6,8 +6,9 @@ import joblib
 import gc
 gc.enable()
 
-# Bibliothèques utiles
+# Bibliothèques utiles pour la manipulation des jeux de données
 import pandas as pd
+from load_files import load_dataset
 
 # Prétraitements
 from preprocessing import preprocessor
@@ -24,8 +25,8 @@ from modelling_funcs import model_eval
 #from styles import *
 
 # Chargement des jeux de données d'apprentissage
-train = pd.read_csv('02_data/application_train.csv', index_col=0)
-test = pd.read_csv('02_data/application_test.csv', index_col=0)
+train = load_dataset('application_train.csv', index_col=0)
+test = load_dataset('application_test.csv', index_col=0)
 
 print('Training set dimensions :', train.shape)
 df = train.copy()

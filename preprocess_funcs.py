@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
+from load_files import load_dataset
 
 import warnings
 warnings.simplefilter(action='ignore', category=UserWarning)
@@ -81,10 +81,7 @@ def get_feature_names(column_transformer):
 
 def add_secondary_table_features(df):
     df = df.copy()
-    try:
-        bur = pd.read_csv('02_data/bureau.csv')
-    except FileNotFoundError:
-        bur = pd.read_csv('../02_data/bureau.csv')
+    bur = load_dataset('bureau.csv')
     idx = 'SK_ID_CURR'
     days_before_curr_app_mean = np.abs(bur.groupby(idx).DAYS_CREDIT.mean())
     df['bureau_DAYS_CREDIT_mean'] = df.join(
