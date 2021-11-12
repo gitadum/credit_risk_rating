@@ -13,6 +13,7 @@ from flask import Flask, jsonify, request
 from load_files import load_dataset, load_model
 from preprocessing import get_preprocessed_set_column_names as get_feat_names
 from preprocess_funcs import add_secondary_table_features
+from modelling import final_predict
 from timer import timer
 
 app = Flask(__name__)
@@ -22,8 +23,7 @@ app_db = add_secondary_table_features(app_db)
 
 model = load_model('HomeCredit_DefaultRisk.pkl')
 
-def final_predict(modl, X, threshold=0.5):
-    return np.array(modl.predict_proba(X)[:,1] > threshold, dtype=int)
+
 
 #ideal_threshold = 0.7560445445897188
 #ideal_threshold = 0.6672414786824148
