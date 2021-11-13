@@ -12,7 +12,7 @@ import shap
 from flask import Flask, jsonify, request
 from load_files import load_dataset, load_model
 from preprocessing import get_preprocessed_set_column_names as get_feat_names
-from preprocess_funcs import add_secondary_table_features
+from preprocessing import add_secondary_table_features
 from modelling import final_predict
 from timer import timer
 
@@ -22,8 +22,6 @@ app_db = load_dataset('application_test.csv', index_col=0)
 app_db = add_secondary_table_features(app_db)
 
 model = load_model('HomeCredit_DefaultRisk.pkl')
-
-
 
 #ideal_threshold = 0.7560445445897188
 #ideal_threshold = 0.6672414786824148

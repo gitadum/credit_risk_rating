@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
+import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
@@ -31,6 +32,7 @@ class AgeInfosTransformer(BaseEstimator, TransformerMixin):
         X.drop(columns=['DAYS_BIRTH'], inplace=True)
         return X
 
+age_info_feats = ['DAYS_BIRTH']
 
 class CreditInfosImputer(BaseEstimator, TransformerMixin):
     '''Special missing value imputer for loan annuity and good price.
@@ -83,8 +85,9 @@ car_info_feats = ['FLAG_OWN_CAR', 'OWN_CAR_AGE']
 
 numeric_feats = train.select_dtypes(['int64', 'float64']).columns.tolist()
 
-for feat in credit_info_feats + ['OWN_CAR_AGE', 'DAYS_BIRTH']:
-    numeric_feats.remove(feat)
+for feat in age_info_feats + credit_info_feats + car_info_feats:
+    if feat in numeric_feats:
+        numeric_feats.remove(feat)
 
 flag_names = ['FLAG', 'REG_', 'LIVE']
 flags = [feat for feat in numeric_feats if feat[:4] in flag_names]
@@ -129,7 +132,10 @@ assert len(numeric_feats) == len(numeric_avg_feats)\
 # # Prétraitement des variables catégoriques
 
 categor_feats = train.select_dtypes('object').columns.tolist()
-categor_feats.remove('FLAG_OWN_CAR')
+
+for feat in age_info_feats + credit_info_feats + car_info_feats:
+    if feat in categor_feats:
+        categor_feats.remove(feat)
 
 # Division entre les catégories dites "binaires" (les flags)
 # et les catégories multi dimensionnelles
@@ -216,7 +222,7 @@ categor_ordinal_prepro = Pipeline(steps=[
 
 # # Pipeline prétraitement finale
 preprocessor = ColumnTransformer([
-    ('ageinfostransformer', AgeInfosTransformer(), ['DAYS_BIRTH']),
+    ('ageinfostransformer', AgeInfosTransformer(), age_info_feats),
     ('creditinfosimputer', CreditInfosImputer(), credit_info_feats),
     ('carinfosimputer', CarInfosImputer(), car_info_feats),
     ('stdnumimputer', SimpleImputer(strategy='median'), other_numeric_feats),
@@ -228,20 +234,18 @@ preprocessor = ColumnTransformer([
     ('categor_one_hot', categor_one_hot_prepro, categor_one_hot_feats)],
     remainder='passthrough')
 
-from preprocess_funcs import get_feature_names
-
-def get_preprocessed_set_column_names(X):
-    prepro_col_names = get_feature_names(X)
+def get_preprocessed_set_column_names(prepro):
+    prepro_col_names = get_feature_names(prepro)
 
     remainder_cols = []
-    for f in X.feature_names_in_:
-        if f not in [item for sublist in X._columns for item in sublist]:
+    for f in prepro.feature_names_in_:
+        if f not in [item for sublist in prepro._columns for item in sublist]:
             remainder_cols.append(f)
     
-    onehot_feat_renaming = {
-        k:v for k,v in zip(range(len(X.transformers_[-2][2])),
-                           X.transformers_[-2][2])
-                           }
+    onehot_feat_cols = prepro.transformers_[-2][2]
+    onehot_feat_renaming = {k:v for k,v in zip(range(len(onehot_feat_cols)),
+                                               onehot_feat_cols)}
+    
     col_names = []
     k = 0
     for col_name in prepro_col_names:
@@ -249,7 +253,7 @@ def get_preprocessed_set_column_names(X):
             new_col_name = col_name
         elif col_name[:10] == 'encoder__x':
             new_col_name = col_name.replace('encoder__x', '')
-            for i in range(len(X.transformers_[-2][2])):
+            for i in range(len(onehot_feat_cols)):
                 if new_col_name[0] == str(i):
                     new_col_name = onehot_feat_renaming[i] + new_col_name[1:]
         elif col_name[0] == 'x' and float(col_name[1:]).is_integer() is True:
@@ -258,12 +262,39 @@ def get_preprocessed_set_column_names(X):
         else:
             new_col_name = col_name.split('__')[1]
         col_names.append(new_col_name)
-        for i in range(len(col_names)):
-            if col_names[i] == 'DAYS_BIRTH':
-                col_names[i] = 'YEARS_AGE'
-            elif col_names[i] == 'CODE_GENDER':
-                col_names[i] = 'GENDER_male'
-            elif col_names[i] == 'NAME_CONTRACT_TYPE':
-                col_names[i] = 'CONTRACT_TYPE_revolving_loan'
+        for n in range(len(col_names)):
+            if col_names[n] == 'DAYS_BIRTH':
+                col_names[n] = 'YEARS_AGE'
+            elif col_names[n] == 'CODE_GENDER':
+                col_names[n] = 'GENDER_male'
+            elif col_names[n] == 'NAME_CONTRACT_TYPE':
+                col_names[n] = 'CONTRACT_TYPE_revolving_loan'
     col_names.insert(4, 'CREDIT_TERM')
     return col_names
+
+def add_secondary_table_features(df):
+    df = df.copy()
+    bur = load_dataset('bureau.csv')
+    idx = 'SK_ID_CURR'
+    days_before_curr_app_mean = np.abs(bur.groupby(idx).DAYS_CREDIT.mean())
+    df['bureau_DAYS_CREDIT_mean'] = df.join(
+        days_before_curr_app_mean, how='left').DAYS_CREDIT
+    df['bureau_DAYS_CREDIT_mean'].fillna(- 1.0, inplace=True)
+    days_before_curr_app_min = np.abs(bur.groupby(idx).DAYS_CREDIT.max())
+    df['bureau_DAYS_CREDIT_min'] = df.join(
+        days_before_curr_app_min, how='left').DAYS_CREDIT
+    df['bureau_DAYS_CREDIT_min'].fillna(- 1.0, inplace=True)
+    n_active_credits = bur[bur.CREDIT_ACTIVE == 'Active'].groupby(idx)\
+                                                         .CREDIT_ACTIVE.count()
+    df['bureau_CREDIT_ACTIVE_count'] = df.join(
+        n_active_credits, how='left').CREDIT_ACTIVE
+    df.bureau_CREDIT_ACTIVE_count.fillna(0, inplace=True)
+    mean_days_cred_overdue = bur.groupby(idx).CREDIT_DAY_OVERDUE.mean()
+    df['bureau_CREDIT_DAY_OVERDUE_mean'] = df.join(
+        mean_days_cred_overdue, how='left').CREDIT_DAY_OVERDUE
+    df['bureau_CREDIT_DAY_OVERDUE_mean'].fillna(0, inplace=True)
+    max_enddate = bur.groupby(idx).DAYS_CREDIT_ENDDATE.max()
+    df['bureau_DAYS_CREDIT_ENDDATE_max'] = df.join(
+        max_enddate, how='left').DAYS_CREDIT_ENDDATE
+    df.bureau_DAYS_CREDIT_ENDDATE_max.fillna(0, inplace=True)
+    return df

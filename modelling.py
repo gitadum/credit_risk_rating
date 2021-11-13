@@ -12,8 +12,7 @@ import numpy as np
 from load_files import load_dataset
 
 # Prétraitements
-from preprocessing import preprocessor
-from preprocess_funcs import add_secondary_table_features
+from preprocessing import preprocessor, add_secondary_table_features
 from imblearn.pipeline import Pipeline
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
