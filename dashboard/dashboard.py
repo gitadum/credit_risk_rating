@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-os.system(["python ../api/app.py"])
+os.system("python api/app.py &")
 
 import streamlit as st
 from individual import application_dashboard
