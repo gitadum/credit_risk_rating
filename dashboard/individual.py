@@ -94,7 +94,8 @@ def application_dashboard():
                 with prediction:
                     st.subheader('Credit risk', anchor='credit-risk')
                     st.write("Risk level: **{}**".format(pred_label[pred_final]))
-                    st.write("[What does that mean?](#model)")
+                    st.write("[What does that mean? see Documentation]"
+                             + "(#model-risk-threshold)")
                     st.write('Credit default probability:')
                     pie_sizes =[pred_proba, 1-pred_proba]
                     # Create a pieplot

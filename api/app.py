@@ -15,7 +15,6 @@ from preprocessing import get_preprocessed_set_column_names as get_feat_names
 from preprocessing import add_secondary_table_features
 from preprocessing import categor_encoded_feats
 from modelling import final_predict
-from timer import timer
 
 app = Flask(__name__)
 
@@ -24,12 +23,8 @@ app_db = add_secondary_table_features(app_db)
 
 model = load_model('HomeCredit_DefaultRisk.pkl')
 
-#ideal_threshold = 0.7560445445897188
-#ideal_threshold = 0.6672414786824148
 ideal_threshold = 0.6757005832464233
 
-#@app.route('/app_details', methods=['POST'])
-@timer
 def get_app_details(id):
     result = {}
     try:
@@ -54,7 +49,6 @@ def get_app_details(id):
     return result
 
 @app.route('/predict', methods=['POST'])
-@timer
 def predict():
     id = int(request.form['sk_id_curr'])
     d = get_app_details(id)
@@ -126,6 +120,5 @@ def gap_with_trends(prediction):
             continue
     return result
 
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
