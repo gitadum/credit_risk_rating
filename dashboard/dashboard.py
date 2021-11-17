@@ -21,8 +21,9 @@ except ModuleNotFoundError:
 
 
 st.sidebar.title("PretADepenser - KnowYourCustomer Dashboard")
-tab = st.sidebar.radio("Select the desired view",
-                       ("Individual", "Base", "API", "Documentation"))
+tab = st.sidebar.radio(label="Select the desired view",
+                       options=("Individual", "Base", "API", "Documentation"),
+                       key='dashboardtabs')
 
 if tab == "Individual":
     st.header("Individual Dashboard")
