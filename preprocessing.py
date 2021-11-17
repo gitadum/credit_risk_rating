@@ -16,6 +16,147 @@ train = load_dataset('application_train.csv')
 # On supprime la colonne d'index et la colonne de la variable cible
 train.drop(columns=['SK_ID_CURR', 'TARGET'], inplace=True)
 
+# Listes de colonnes qui vont passer par une chaîne de prétraitements spéciale
+age_info_feats = ['DAYS_BIRTH']
+credit_info_feats = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE']
+car_info_feats = ['FLAG_OWN_CAR', 'OWN_CAR_AGE']
+
+# # Prétraitement des variables numériques
+
+numeric_feats = train.select_dtypes(['int64', 'float64']).columns.tolist()
+
+for feat in age_info_feats + credit_info_feats + car_info_feats:
+    if feat in numeric_feats:
+        numeric_feats.remove(feat)
+
+# Fonction qui récupère la cardinalité d'une variable
+dimensionality = lambda x,df : df[[x]].apply(pd.Series.nunique).values
+
+flags = [feat for feat in numeric_feats if feat[:4] in ['FLAG', 'REG_', 'LIVE']]
+categor_encoded_feats = []
+for feat in numeric_feats:
+    if feat not in flags:
+        if dimensionality(feat,train) <= 2:
+            categor_encoded_feats.append(feat)
+            numeric_feats.remove(feat)
+
+for flag in flags:
+    categor_encoded_feats.append(flag)
+    numeric_feats.remove(flag)
+
+numeric_avg_feats = []
+numeric_med_feats = []
+numeric_mod_feats = []
+numeric_notcntral = []
+for feat in numeric_feats:
+    if feat[-4:] == '_AVG':
+        numeric_avg_feats.append(feat)
+    elif feat[-4:] == 'MEDI':
+        numeric_med_feats.append(feat)
+    elif feat[-4:] == 'MODE':
+        numeric_mod_feats.append(feat)
+    else:
+        numeric_notcntral.append(feat)
+
+assert len(numeric_feats) == len(numeric_avg_feats)\
+                           + len(numeric_med_feats)\
+                           + len(numeric_mod_feats)\
+                           + len(numeric_notcntral)
+
+# # Prétraitement des variables catégoriques
+
+categor_feats = train.select_dtypes('object').columns.tolist()
+
+for feat in age_info_feats + credit_info_feats + car_info_feats:
+    if feat in categor_feats:
+        categor_feats.remove(feat)
+
+# Division entre les catégories dites "binaires" (les flags)
+# qui seront encodées de manière ordinale
+# et les catégories multi-dimensionnelles
+# qui seront traitées avec un encodeur one-hot
+categor_ordinal_feats = []
+categor_one_hot_feats = []
+for feat in categor_feats:
+    if dimensionality(feat,train) > 2:
+        categor_one_hot_feats.append(feat)
+    else:
+        categor_ordinal_feats.append(feat)
+
+# N.B. : la variable `WEEKDAY_APPR_PROCESS_START` n'est pas binaire
+# mais elle doit être encodée de manière ordinale de par sa nature cyclique
+for feat in ['CODE_GENDER', 'WEEKDAY_APPR_PROCESS_START']:
+    categor_one_hot_feats.remove(feat)
+    categor_ordinal_feats.append(feat)
+
+categor_encoded_prepro = Pipeline([
+    ('imputer', SimpleImputer(strategy='most_frequent'))])
+
+# ## Prétraitement des variables catégoriques multidimensionnelles
+
+class OneHotColsImputer(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        return None
+    
+    def fit(self, X, y=None):
+        for col in X.columns.tolist():
+            X[col].fillna('Unknown', inplace=True)
+            X[col].replace('XNA', 'Unknown', inplace=True)
+        return self
+    
+    def transform(self, X):
+        for col in X.columns.tolist():
+            X[col].fillna('Unknown', inplace=True)
+            X[col].replace('XNA', 'Unknown', inplace=True)
+        return X
+
+class OneHotColsFormatter(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        return None
+    
+    def format_categor_values(x):
+        y = x.lower()
+        y = y.replace(' ', '_')
+        y = y.replace('-', '').replace(':', '')
+        y = y.replace(',', '_or').replace('/', 'or')
+        return y
+    
+    def fit(self, X, y=None):
+        for col in X.columns.tolist():
+            X[col] = X[col].apply(OneHotColsFormatter.format_categor_values)
+        return self
+    
+    def transform(self, X):
+        for col in X.columns.tolist():
+            X[col] = X[col].apply(OneHotColsFormatter.format_categor_values)
+        return X
+
+categor_one_hot_prepro = Pipeline(steps=[
+    ('imputer', OneHotColsImputer()),
+    ('formatter', OneHotColsFormatter()),
+    ('encoder', OneHotEncoder(handle_unknown='ignore'))])
+
+# ## Prétraitement des variables catégoriques "binaires" (bi-dimensionnelles)
+
+# On mappe les valeurs possibles pour chaque variable binaire
+# afin de rendre l'encodage ordinal non aléatoire
+# et de savoir pour chaque variable ce que représente 0 et ce que représente 1
+# (ainsi pour les flags, 0 voudra toujours dire non et 1 sera toujours oui)
+ordinal_dims = {'contract_types': ['Cash loans', 'Revolving loans'],
+                'y_or_n': ['N', 'Y'],
+                'yes_or_no': ['No', 'Yes'],
+                'genders': ['F', 'M'],
+                'weekdays': ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
+                             'FRIDAY', 'SATURDAY', 'SUNDAY']
+                 }
+ordinal_categories = [ordinal_dims[k] for k in ordinal_dims.keys()]
+
+categor_ordinal_prepro = Pipeline(steps=[
+    ('nan_imputer', SimpleImputer(strategy='most_frequent')),
+    ('xna_imputer', SimpleImputer(missing_values='XNA',
+                                   strategy='most_frequent')),
+    ('encoder', OrdinalEncoder(categories=ordinal_categories))])
+
 # Techniques d'imputations spécifiques basées sur pandas
 
 class AgeInfosTransformer(BaseEstimator, TransformerMixin):
@@ -31,8 +172,6 @@ class AgeInfosTransformer(BaseEstimator, TransformerMixin):
         X.loc[:, 'YEARS_AGE'] = - X.loc[:, 'DAYS_BIRTH'] / 365.0
         X.drop(columns=['DAYS_BIRTH'], inplace=True)
         return X
-
-age_info_feats = ['DAYS_BIRTH']
 
 class CreditInfosImputer(BaseEstimator, TransformerMixin):
     '''Special missing value imputer for loan annuity and good price.
@@ -52,8 +191,6 @@ class CreditInfosImputer(BaseEstimator, TransformerMixin):
         X.AMT_GOODS_PRICE.fillna(round(X.AMT_CREDIT * .90, 1), inplace=True)
         X['CREDIT_TERM'] = X.AMT_ANNUITY / X.AMT_CREDIT
         return X
-
-credit_info_feats = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE']
 
 # On assigne une valeur -1 à la variable `OWN_CAR_AGE` 
 # pour les clients qui ne possèdent pas de voiture
@@ -79,153 +216,12 @@ class CarInfosImputer(BaseEstimator, TransformerMixin):
         X.OWN_CAR_AGE.fillna(median_car_age, inplace=True)
         return X
 
-car_info_feats = ['FLAG_OWN_CAR', 'OWN_CAR_AGE']
-
-# # Prétraitement des variables numériques
-
-numeric_feats = train.select_dtypes(['int64', 'float64']).columns.tolist()
-
-for feat in age_info_feats + credit_info_feats + car_info_feats:
-    if feat in numeric_feats:
-        numeric_feats.remove(feat)
-
-flag_names = ['FLAG', 'REG_', 'LIVE']
-flags = [feat for feat in numeric_feats if feat[:4] in flag_names]
-categor_encoded_feats = []
-
-# Récupération de la cardinalité des variables
-dimensionality = lambda x,df : df[[x]].apply(pd.Series.nunique).values
-
-for feat in numeric_feats:
-    if feat not in flags:
-        if dimensionality(feat,train) <= 2:
-            categor_encoded_feats.append(feat)
-            numeric_feats.remove(feat)
-
-for flag in flags:
-    categor_encoded_feats.append(flag)
-    numeric_feats.remove(flag)
-
-categor_encoded_prepro = Pipeline([
-    ('imputer', SimpleImputer(strategy='most_frequent'))])
-
-numeric_avg_feats = []
-numeric_med_feats = []
-numeric_mod_feats = []
-other_numeric_feats = []
-
-for feat in numeric_feats:
-    if feat[-4:] == '_AVG':
-        numeric_avg_feats.append(feat)
-    elif feat[-4:] == 'MEDI':
-        numeric_med_feats.append(feat)
-    elif feat[-4:] == 'MODE':
-        numeric_mod_feats.append(feat)
-    else:
-        other_numeric_feats.append(feat)
-
-assert len(numeric_feats) == len(numeric_avg_feats)\
-                             + len(numeric_med_feats)\
-                             + len(numeric_mod_feats)\
-                             + len(other_numeric_feats)
-
-# # Prétraitement des variables catégoriques
-
-categor_feats = train.select_dtypes('object').columns.tolist()
-
-for feat in age_info_feats + credit_info_feats + car_info_feats:
-    if feat in categor_feats:
-        categor_feats.remove(feat)
-
-# Division entre les catégories dites "binaires" (les flags)
-# et les catégories multi dimensionnelles
-categor_ordinal_feats = []
-categor_one_hot_feats = []
-for feat in categor_feats:
-    if dimensionality(feat,train) > 2:
-        categor_one_hot_feats.append(feat)
-    else:
-        categor_ordinal_feats.append(feat)
-
-miscategorized_feats = ['CODE_GENDER', 'WEEKDAY_APPR_PROCESS_START']
-# N.B. : la variable `WEEKDAY_APPR_PROCESS_START` n'est pas binaire
-# mais elle doit être traitée différemment des autres variables multi
-# elle sera traitée avec les binaires pour l'instant
-
-for feat in miscategorized_feats:
-    categor_one_hot_feats.remove(feat)
-    categor_ordinal_feats.append(feat)
-
-# ## Prétraitement des variables catégoriques multidimensionnelles
-
-def format_categor_values(x):
-    y = x.lower()
-    y = y.replace(' ', '_')
-    y = y.replace('-', '').replace(':', '')
-    y = y.replace(',', '_or').replace('/', 'or')
-    return y
-
-class OneHotColsImputer(BaseEstimator, TransformerMixin):
-    def __init__(self):
-        return None
-    
-    def fit(self, X, y=None):
-        for col in X.columns.tolist():
-            X[col].fillna('Unknown', inplace=True)
-            X[col].replace('XNA', 'Unknown', inplace=True)
-        return self
-    
-    def transform(self, X):
-        for col in X.columns.tolist():
-            X[col].fillna('Unknown', inplace=True)
-            X[col].replace('XNA', 'Unknown', inplace=True)
-        return X
-
-class OneHotColsFormatter(BaseEstimator, TransformerMixin):
-    def __init__(self):
-        return None
-    
-    def fit(self, X, y=None):
-        for col in X.columns.tolist():
-            X[col] = X[col].apply(format_categor_values)
-        return self
-    
-    def transform(self, X):
-        for col in X.columns.tolist():
-            X[col] = X[col].apply(format_categor_values)
-        return X
-
-categor_one_hot_prepro = Pipeline(steps=[
-    ('imputer', OneHotColsImputer()),
-    ('formatter', OneHotColsFormatter()),
-    ('encoder', OneHotEncoder(handle_unknown='ignore'))])
-
-# ## Prétraitement des variables catégoriques "binaires" (bi-dimensionnelles)
-
-# On mappe les valeurs possibles pour chaque variable binaire
-# afin de rendre l'encodage ordinal non aléatoire
-# et de savoir pour chaque variable ce que représente 0 et ce que représente 1
-# (ainsi pour les flags, 0 voudra toujours dire non et 1 sera toujours oui)
-contract_types = ['Cash loans', 'Revolving loans']
-y_or_n = ['N', 'Y']
-yes_or_no = ['No', 'Yes']
-genders = ['F', 'M']
-weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
-            'FRIDAY', 'SATURDAY', 'SUNDAY']
-categories = [contract_types, y_or_n, yes_or_no, genders, weekdays]
-
-categor_ordinal_prepro = Pipeline(steps=[
-    ('nan_imputer', SimpleImputer(strategy='most_frequent')),
-    ('xna_imputer', SimpleImputer(missing_values='XNA',
-                                   strategy='most_frequent')),
-    ('encoder', OrdinalEncoder(categories=categories))])
-
 # # Pipeline prétraitement finale
 preprocessor = ColumnTransformer([
     ('ageinfostransformer', AgeInfosTransformer(), age_info_feats),
     ('creditinfosimputer', CreditInfosImputer(), credit_info_feats),
     ('carinfosimputer', CarInfosImputer(), car_info_feats),
-    ('stdnumimputer', SimpleImputer(strategy='median'), other_numeric_feats),
+    ('numimputer', SimpleImputer(strategy='median'), numeric_notcntral),
     ('avgimputer', SimpleImputer(strategy='mean'), numeric_avg_feats),
     ('medimputer', SimpleImputer(strategy='median'), numeric_med_feats),
     ('modimputer', SimpleImputer(strategy='most_frequent'), numeric_mod_feats),
@@ -249,9 +245,7 @@ def get_preprocessed_set_column_names(prepro):
     col_names = []
     k = 0
     for col_name in prepro_col_names:
-        if col_name == 'TARGET':
-            new_col_name = col_name
-        elif col_name[:10] == 'encoder__x':
+        if col_name[:10] == 'encoder__x':
             new_col_name = col_name.replace('encoder__x', '')
             for i in range(len(onehot_feat_cols)):
                 if new_col_name[0] == str(i):
