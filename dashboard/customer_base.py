@@ -5,7 +5,7 @@ import streamlit as st
 from api.app import app_db
 
 #@st.cache(suppress_st_warning=True)
-def display_customerbase():
+def display_applicantbase():
     display_table = app_db.copy()
     for col in list(display_table.columns):
         display_table[col] = display_table[col].astype('category')

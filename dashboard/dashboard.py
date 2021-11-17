@@ -2,19 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import streamlit as st
-from customer import customer_dashboard
-from customer_base import display_customerbase
+from customer import application_dashboard
+from customer_base import display_applicantbase
+from raw_results import display_raw_results
 
-st.sidebar.title("PretADepenser - KYC Dashboard")
-tab = st.sidebar.radio("Sélectionnez l'onglet souhaité",
-                       ("KYC", "Base client", "Autre"))
+st.sidebar.title("PretADepenser - KnowYourCustomer Dashboard")
+tab = st.sidebar.radio("Select the desired view",
+                       ("Individual", "Base", "API"))
 
-if tab == "KYC":
-    st.header("Tableau de bord individuel")
-    customer_dashboard()
-elif tab == "Base client":
-    st.header("Base client :")
-    display_customerbase()
-elif tab == "Autre":
-    st.header('Modèle', anchor='model')
-    st.write("Autres options (prochainement)")
+if tab == "Individual":
+    st.header("Individual Dashboard")
+    application_dashboard()
+elif tab == "Base":
+    st.header("Application base viewer:")
+    display_applicantbase()
+elif tab == "API":
+    st.header('API result displayer', anchor='raw-result')
+    display_raw_results()

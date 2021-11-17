@@ -57,28 +57,25 @@ def shap_decision_plot(explainer, shap_values, feature_names):
                               feature_names=feature_names)
 
 #@st.cache(suppress_st_warning=True)
-def customer_dashboard():
+def application_dashboard():
     # ## DÉBUT DU TABLEAU DE BORD ##
-    #st.title('PretADepenser - KYC Dashboard', anchor='/')
 
-    id_input = st.text_input(label='Entrez un numéro de dossier')
-    predict_btn = st.button('Visualiser')
+    id_input = st.text_input(label='Enter an application id number')
+    predict_btn = st.button('View')
 
     if predict_btn:
         req = request_prediction(API_URI, id_input)
         gaps_req = gap_with_trends(req)
-        st.write(req) # debug
-        # for col in list(req.keys()):
-        #     print(col, type(col))
-        st.write(gaps_req) # debug
+        #st.write(req) # debug
+        #st.write(gaps_req) # debug
         if req['status_code'] == 404:
-            st.write('La demande de prêt n\'est pas présente dans la base.')
+            st.write('The application was not found in the database.')
         elif req['status_code'] != 200:
-            st.write('Une erreur s\'est produite.')
+            st.write('An error occurred.')
         else:
             details = get_app_details(int(id_input))
             pred_final = req['risk']
-            pred_label = {0: 'Acceptable', 1: 'Critique'}
+            pred_label = {0: 'Acceptable', 1: 'Critical'}
             pred_proba = req['default_proba']
             red =  '#FF0D57'
             blue = '#1E88E5'
@@ -89,17 +86,16 @@ def customer_dashboard():
             explain = st.container()
             
             with insights:
-                st.header('Demande de prêt N°{}'.format(req['id']),
+                st.header('Credit Application N°{}'.format(req['id']),
                             anchor='application')
 
                 prediction, explain = st.columns([1,2])
 
                 with prediction:
-                    st.subheader('Risque de crédit', anchor='credit-risk')
-                    st.write("Niveau de risque : **{}**".format(
-                        pred_label[pred_final]))
-                    st.write("[que signifient ces seuils de risque ?](#model)")
-                    st.write('Probabilité de défaut sur le crédit demandé :')
+                    st.subheader('Credit risk', anchor='credit-risk')
+                    st.write("Risk level: **{}**".format(pred_label[pred_final]))
+                    st.write("[What does that mean?](#model)")
+                    st.write('Credit default probability:')
                     pie_sizes =[pred_proba, 1-pred_proba]
                     # Create a pieplot
                     plt.figure(figsize=(6,6))
@@ -115,42 +111,45 @@ def customer_dashboard():
                     st.pyplot(p)
 
                 with explain:
-                    st.subheader('Facteurs de prédiction',
-                                 anchor='predict-factors')
+                    st.subheader('Prediction factors',
+                                 anchor='prediction-factors')
                     st_shap(shap_force_plot(details['shap_explainer'],
                                             details['shap_values'],
                                             details['Xp'],
                                             details['feature_names']))
-                    st.write('**Principaux facteurs de prédiction '\
-                             +'selon le modèle :**')
+                    st.write('**Main prediction factors features:**')
                     for col in ['EXT_SOURCE_1','EXT_SOURCE_2', 'EXT_SOURCE_3',
                                 'AMT_GOODS_PRICE', 'AMT_CREDIT']:
                         if str(req[col]['value']) != "nan":
                             delta = gaps_req[col]['gap_med_pct']
                             pct = abs(delta * 100.0)
-                            following = 'élevé que la médiane des demandes.'
+                            following = 'than all applications median.'
                             if delta >= 0.0:
-                                sign = 'plus'
+                                sign = 'higher'
                             else:
-                                sign = 'moins'
+                                sign = 'lower'
                             s = '**{}**: {:.0f}% {} {}'.format(col, pct,
                                                             sign, following)
                             st.write(s)
                         else:
-                            st.write('**{}**: valeur inconnue.'.format(col))
+                            st.write('**{}**: unknown value.'.format(col))
 
             main_infos = st.container()
             with main_infos:
-                st.header('Informations sur le dossier N°{}'.format(req['id']))
-                st.subheader('Information sur le demandeur')
-                st.write(details['X'])
+                st.header('Infos on application N°{}'.format(req['id']))
+                st.subheader('Main infos about the applicant')
                 age = floor(- req['DAYS_BIRTH']['value'] / 365)
-                st.write("**ÂGE :** {}".format(age))
-                st.write("**GENRE :** {}".format(req['CODE_GENDER']['value']))
+                st.write("**AGE:** {}".format(age))
+                st.write("**GENDER :** {}".format(req['CODE_GENDER']['value']))
                 st.write("**PROFESSION :** {}".format(req['OCCUPATION_TYPE']\
                                                          ['value']))
-                st.write("**REVENU ANNUEL :** {}".format(req['AMT_INCOME_TOTAL']\
+                st.write("**ANNUAL INCOME:** {}".format(req['AMT_INCOME_TOTAL']\
                                                             ['value']))
-                st.subheader('Information sur le prêt')
-                st.subheader('Simuler d\'autres conditions d\'emprunt')
-                new_simul = st.button('Simuler')
+                st.subheader('Main infos about the credit')
+                credit_cols = {
+                    'AMT_CREDIT': 'Credit amount',
+                    'AMT_GOODS_PRICE': 'Good price amount',
+                    'AMT_ANNUITY': 'Annuity amount'
+                }
+                for k,v in credit_cols.items():
+                    st.write('**{}**: {}'.format(v, req[k]['value']))
