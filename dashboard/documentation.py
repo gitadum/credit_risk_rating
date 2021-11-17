@@ -7,12 +7,12 @@ sys.path.append('..')
 
 import streamlit as st
 from load_files import load_dataset
-from individual import request_prediction, HEROKU_URL as API_URI
+from individual import request_prediction, API_URL
 
 def display_descriptions():
     col_desc = load_dataset('HomeCredit_columns_description.csv', index_col=0,
                             encoding='latin9')
-    desc_req = request_prediction(API_URI, '123456')
+    desc_req = request_prediction(API_URL, '123456')
     #st.write(list(desc_req.keys())[:-10]) # debug
     for col in desc_req.keys():
         if type(desc_req[col]) == dict:

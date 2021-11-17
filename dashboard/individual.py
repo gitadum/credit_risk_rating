@@ -33,9 +33,12 @@ def request_prediction(model_uri, customer_id):
 def cached_app_details():
     return get_app_details
 
+context = 'local'
 
-LOCAL_URI = 'http://127.0.0.1:5000/predict'
-HEROKU_URL = 'https://powerful-tor-37001.herokuapp.com:5000/predict'
+if context == 'local':
+    API_URL = 'http://127.0.0.1:5000/predict'
+elif context == 'heroku':
+    API_URL = 'https://powerful-tor-37001.herokuapp.com:5000/predict'
 
 # Use the full page instead of a narrow central column
 st.set_page_config(layout="wide")
@@ -65,10 +68,7 @@ def application_dashboard():
     predict_btn = st.button('View')
 
     if predict_btn:
-        try:
-            req = request_prediction(LOCAL_URI, id_input)
-        except ConnectionError:
-            req = request_prediction(HEROKU_URL, id_input)
+        req = request_prediction(API_URL, id_input)
         gaps_req = gap_with_trends(req)
         #st.write(req) # debug
         #st.write(gaps_req) # debug
