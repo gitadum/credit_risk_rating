@@ -13,6 +13,7 @@ from flask import Flask, jsonify, request
 from load_files import load_dataset, load_model
 from preprocessing import get_preprocessed_set_column_names as get_feat_names
 from preprocessing import add_secondary_table_features
+from preprocessing import categor_encoded_feats
 from modelling import final_predict
 from timer import timer
 
@@ -71,17 +72,13 @@ def predict():
         result[col] = dict()
         result[col]['value'] = d['app_db'].loc[id, col]
         if d['app_db'][col].dtype in ['float64', 'int64']:
-            if type(result[col]['value']) == np.int64:
-                result[col]['value'] = int(result[col]['value'])
-            elif type(result[col]['value']) == np.float64:
-                result[col]['value'] = float(result[col]['value'])
-            result[col]['median'] = float(d['app_db'][col].median())
-            result[col]['gap'] = result[col]['value'] - result[col]['median']
-            if result[col]['median'] != 0.0:
-                result[col]['gap_pct'] = result[col]['gap'] \
-                                       / result[col]['median']
-            else:
-                result[col]['gap_pct'] = np.nan
+                if type(result[col]['value']) == np.int64:
+                    result[col]['value'] = int(result[col]['value'])
+                elif type(result[col]['value']) == np.float64:
+                    result[col]['value'] = float(result[col]['value'])
+                if col not in categor_encoded_feats:
+                    result[col]['median'] = float(d['app_db'][col].median())
+                    result[col]['mean'] = float(d['app_db'][col].mean())
     
     result['status_code'] = 200
     
@@ -95,6 +92,39 @@ def predict():
     #         print(key, type(result[key]))
     
     return jsonify(result)
+
+def gap_with_trends(prediction):
+    
+    def central_trend_gap(value, trend):
+        result = {}
+        result['gap'] = value - trend
+        if trend != 0.0:
+            result['gap_pct'] = result['gap'] / trend
+        else:
+            result['gap_pct'] = np.nan
+        return result
+    
+    result = {}
+    for col in prediction.keys():
+        if type(prediction[col]) == dict:
+            try:
+                avg = central_trend_gap(prediction[col]['value'],
+                                        prediction[col]['mean'])
+                med = central_trend_gap(prediction[col]['value'],
+                                        prediction[col]['median'])
+                #print(avg) # debug
+                #print(med) # debug
+                result[col] = {}
+                result[col]['gap_avg'] = avg['gap']
+                result[col]['gap_avg_pct'] = avg['gap_pct']
+                result[col]['gap_med'] = med['gap']
+                result[col]['gap_med_pct'] = med['gap_pct']
+                #print(result) # debug
+            except KeyError:
+                continue
+        else:
+            continue
+    return result
 
 
 if __name__ == '__main__':

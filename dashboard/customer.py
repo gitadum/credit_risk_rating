@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+sys.path.append('.')
 sys.path.append('..')
 
 import streamlit as st
@@ -12,10 +13,9 @@ from matplotlib.colors import LinearSegmentedColormap
 
 import requests
 from json import JSONDecodeError
-from api.app import get_app_details
+from api.app import get_app_details, gap_with_trends
 
 from math import floor
-
 
 @st.cache
 def request_prediction(model_uri, customer_id):
@@ -32,6 +32,7 @@ def request_prediction(model_uri, customer_id):
 @st.cache
 def cached_app_details():
     return get_app_details
+
 
 API_URI = 'http://127.0.0.1:5000/predict'
 
@@ -65,7 +66,11 @@ def customer_dashboard():
 
     if predict_btn:
         req = request_prediction(API_URI, id_input)
-        #st.write(req) # debug
+        gaps_req = gap_with_trends(req)
+        st.write(req) # debug
+        # for col in list(req.keys()):
+        #     print(col, type(col))
+        st.write(gaps_req) # debug
         if req['status_code'] == 404:
             st.write('La demande de prêt n\'est pas présente dans la base.')
         elif req['status_code'] != 200:
@@ -121,7 +126,7 @@ def customer_dashboard():
                     for col in ['EXT_SOURCE_1','EXT_SOURCE_2', 'EXT_SOURCE_3',
                                 'AMT_GOODS_PRICE', 'AMT_CREDIT']:
                         if str(req[col]['value']) != "nan":
-                            delta = req[col]['gap_pct']
+                            delta = gaps_req[col]['gap_med_pct']
                             pct = abs(delta * 100.0)
                             following = 'élevé que la médiane des demandes.'
                             if delta >= 0.0:
