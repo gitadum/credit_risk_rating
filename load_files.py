@@ -12,8 +12,11 @@ def load_dataset(filename, data_path='02_data', *args, **kwargs):
             file = pd.read_csv('../' + data_path + '/' + filename,
                                *args, **kwargs)
         except FileNotFoundError:
-            raise FileNotFoundError('{} not found in {} dir.'.format(filename,
-                                                                     data_path))
+            try:
+                file = pd.read_pickle('../data_files/' + filename.replace('.csv', '.bz2'))
+            except FileNotFoundError:
+                raise FileNotFoundError('{} not found in {} dir.'.format(filename,
+                                                                         data_path))
     return file
 
 
