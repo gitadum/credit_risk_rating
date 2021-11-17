@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import subprocess
+subprocess.run(["cd api && flask run"])
+
 import streamlit as st
 from individual import application_dashboard
 from app_base import display_applicantbase
