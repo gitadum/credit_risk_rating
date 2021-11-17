@@ -3,21 +3,13 @@
 
 #import os
 #os.system("python api/app.py &")
-import sys
-sys.path.append('.')
-sys.path.append('..')
 
 import streamlit as st
-try:
-    from dashboard.individual import application_dashboard
-    from dashboard.app_base import display_applicantbase
-    from dashboard.raw_results import display_raw_results
-    from dashboard.documentation import display_documentation
-except ModuleNotFoundError:
-    from individual import application_dashboard
-    from app_base import display_applicantbase
-    from raw_results import display_raw_results
-    from documentation import display_documentation
+
+from individual import application_dashboard
+from app_base import display_applicantbase
+from raw_results import display_raw_results
+from documentation import display_documentation
 
 
 st.sidebar.title("PretADepenser - KnowYourCustomer Dashboard")
