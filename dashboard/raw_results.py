@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import streamlit as st
-from individual import request_prediction, API_URI
+from individual import request_prediction, HEROKU_URL as API_URI
 from api.app import gap_with_trends
 
 def display_raw_results():
