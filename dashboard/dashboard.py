@@ -3,6 +3,9 @@
 
 #import os
 #os.system("python api/app.py &")
+import sys
+sys.path.append('.')
+sys.path.append('..')
 
 import streamlit as st
 from dashboard.individual import application_dashboard
