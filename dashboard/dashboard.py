@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import streamlit as st
-from customer import application_dashboard
-from customer_base import display_applicantbase
+from individual import application_dashboard
+from app_base import display_applicantbase
 from raw_results import display_raw_results
 
 st.sidebar.title("PretADepenser - KnowYourCustomer Dashboard")
