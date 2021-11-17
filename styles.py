@@ -1,15 +1,14 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
-import yellowbrick.style
+#import yellowbrick.style
 
 # On rend silencieux certains avertissements
-import warnings
-warnings.filterwarnings("ignore", category=mpl.MatplotlibDeprecationWarning)
-yellowbrick.style.reset_orig()
+#import warnings
+#warnings.filterwarnings("ignore", category=mpl.MatplotlibDeprecationWarning)
+#yellowbrick.style.reset_orig()
 
 # On place ici de quoi paramétrer le style de nos graphiques
 font = {
