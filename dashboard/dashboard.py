@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import subprocess
-subprocess.run(["python ../api/app.py"])
+import os
+os.system(["python ../api/app.py"])
 
 import streamlit as st
 from individual import application_dashboard
