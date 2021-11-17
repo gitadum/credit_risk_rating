@@ -5,10 +5,11 @@ import streamlit as st
 from individual import application_dashboard
 from app_base import display_applicantbase
 from raw_results import display_raw_results
+from documentation import display_documentation
 
 st.sidebar.title("PretADepenser - KnowYourCustomer Dashboard")
 tab = st.sidebar.radio("Select the desired view",
-                       ("Individual", "Base", "API"))
+                       ("Individual", "Base", "API", "Documentation"))
 
 if tab == "Individual":
     st.header("Individual Dashboard")
@@ -19,3 +20,6 @@ elif tab == "Base":
 elif tab == "API":
     st.header('API result displayer', anchor='raw-result')
     display_raw_results()
+elif tab == "Documentation":
+    st.header("Model Documentation")
+    display_documentation()
