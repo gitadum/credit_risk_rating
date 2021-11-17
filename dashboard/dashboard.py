@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import subprocess
-subprocess.run(["cd api && flask run"])
+subprocess.run(["cd ../api && flask run"])
 
 import streamlit as st
 from individual import application_dashboard
