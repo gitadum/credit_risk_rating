@@ -1,8 +1,10 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-#import os
-#os.system("python api/app.py &")
+import sys
+
+sys.path.append('.')
+sys.path.append('..')
 
 import streamlit as st
 
