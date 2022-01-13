@@ -75,7 +75,7 @@ def application_dashboard():
         if req['status_code'] == 404:
             st.write('The application was not found in the database.')
         elif req['status_code'] != 200:
-            st.write('An error occurred.')
+            st.write('{}: An error occurred.'.format(req['status_code']))
         else:
             details = get_app_details(int(id_input))
             pred_final = req['risk']
