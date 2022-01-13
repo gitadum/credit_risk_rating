@@ -13,7 +13,7 @@ from matplotlib.colors import LinearSegmentedColormap
 
 import requests
 from json import JSONDecodeError
-from api.app import get_app_details, gap_with_trends
+from api.app import HOST_URL, PORT, get_app_details, gap_with_trends
 
 from math import floor
 
@@ -33,12 +33,7 @@ def request_prediction(model_uri, customer_id):
 def cached_app_details():
     return get_app_details
 
-context = 'heroku'
-
-if context == 'local':
-    API_URL = 'http://127.0.0.1:5000/predict'
-elif context == 'heroku':
-    API_URL = 'https://powerful-tor-37001.herokuapp.com:5000/predict'
+API_URL = HOST_URL + ':' + PORT + '/predict/'
 
 # Use the full page instead of a narrow central column
 st.set_page_config(layout="wide")
@@ -97,7 +92,8 @@ def application_dashboard():
 
                 with prediction:
                     st.subheader('Credit risk', anchor='credit-risk')
-                    st.write("Risk level: **{}**".format(pred_label[pred_final]))
+                    st.write("Risk level: **{}**"\
+                             .format(pred_label[pred_final]))
                     st.write("[What does that mean? see Documentation]"
                              + "(#model-risk-threshold)")
                     st.write('Credit default probability:')
