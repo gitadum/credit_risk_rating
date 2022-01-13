@@ -18,8 +18,8 @@ from api.app import HOST_URL, PORT, get_app_details, gap_with_trends
 from math import floor
 
 @st.cache
-def request_prediction(model_uri, customer_id):
-    r = requests.post(url=model_uri, data={'sk_id_curr': customer_id})
+def request_prediction(model_url, customer_id):
+    r = requests.post(url=model_url, data={'sk_id_curr': customer_id})
     result = {}
     try:
         result = r.json()
@@ -33,7 +33,7 @@ def request_prediction(model_uri, customer_id):
 def cached_app_details():
     return get_app_details
 
-API_URL = HOST_URL + ':' + str(PORT) + '/predict/'
+API_URL = HOST_URL + ':' + str(PORT) + '/predict'
 
 # Use the full page instead of a narrow central column
 st.set_page_config(layout="wide")
@@ -63,6 +63,7 @@ def application_dashboard():
     predict_btn = st.button('View')
 
     if predict_btn:
+        st.write(API_URL)
         req = request_prediction(API_URL, id_input)
         gaps_req = gap_with_trends(req)
         #st.write(req) # debug
