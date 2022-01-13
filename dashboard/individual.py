@@ -33,7 +33,7 @@ def request_prediction(model_uri, customer_id):
 def cached_app_details():
     return get_app_details
 
-context = 'heroku'
+context = 'local'
 
 if context == 'local':
     API_URL = 'http://127.0.0.1:5000/predict'
