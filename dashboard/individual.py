@@ -33,12 +33,12 @@ def request_prediction(model_uri, customer_id):
 def cached_app_details():
     return get_app_details
 
-context = 'local'
+context = 'heroku'
 
 if context == 'local':
     API_URL = 'http://127.0.0.1:5000/predict'
 elif context == 'heroku':
-    API_URL = 'https://powerful-tor-37001.herokuapp.com/predict'
+    API_URL = 'https://powerful-tor-37001.herokuapp.com:5000/predict'
 
 # Use the full page instead of a narrow central column
 st.set_page_config(layout="wide")
