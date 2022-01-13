@@ -16,6 +16,14 @@ from preprocessing import add_secondary_table_features
 from preprocessing import categor_encoded_feats
 from modelling import final_predict
 
+CONTEXT = 'heroku'
+
+if CONTEXT == 'local':
+    HOST_URL = 'https://127.0.0.1'
+elif CONTEXT == 'heroku':
+    HOST_URL = 'https://powerful-tor-37001.herokuapp.com'
+PORT = 5000
+
 app = Flask(__name__)
 
 app_db = load_dataset('application_test.csv', index_col=0)
@@ -121,4 +129,4 @@ def gap_with_trends(prediction):
     return result
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(host=HOST_URL, port=PORT)
