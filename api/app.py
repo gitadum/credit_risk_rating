@@ -129,4 +129,4 @@ def gap_with_trends(prediction):
     return result
 
 if __name__ == '__main__':
-    app.run(host=HOST_URL, port=PORT)
+    app.run()
