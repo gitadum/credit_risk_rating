@@ -8,10 +8,10 @@ sys.path.append('..')
 
 import streamlit as st
 
-from individual import application_dashboard
-from app_base import display_applicantbase
-from raw_results import display_raw_results
-from documentation import display_documentation
+from dashboard.individual import application_dashboard
+from dashboard.app_base import display_applicantbase
+from dashboard.raw_results import display_raw_results
+from dashboard.documentation import display_documentation
 
 
 st.sidebar.title("PretADepenser - KnowYourCustomer Dashboard")
