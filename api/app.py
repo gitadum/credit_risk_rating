@@ -16,7 +16,7 @@ from preprocessing import add_secondary_table_features
 from preprocessing import categor_encoded_feats
 from modelling import final_predict
 
-CONTEXT = 'local'
+CONTEXT = 'heroku'
 
 if CONTEXT == 'local':
     HOST_URL = 'http://127.0.0.1'
