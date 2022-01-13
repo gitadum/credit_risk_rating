@@ -21,7 +21,7 @@ CONTEXT = 'local'
 if CONTEXT == 'local':
     HOST_URL = 'http://127.0.0.1'
 elif CONTEXT == 'heroku':
-    HOST_URL = 'https://powerful-tor-37001.herokuapp.com'
+    HOST_URL = 'http://powerful-tor-37001.herokuapp.com'
 PORT = 5000
 
 app = Flask(__name__)

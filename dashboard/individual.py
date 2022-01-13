@@ -63,7 +63,7 @@ def application_dashboard():
     predict_btn = st.button('View')
 
     if predict_btn:
-        st.write(API_URL)
+        #st.write(API_URL) # debug
         req = request_prediction(API_URL, id_input)
         gaps_req = gap_with_trends(req)
         #st.write(req) # debug
