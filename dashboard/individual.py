@@ -33,7 +33,7 @@ def request_prediction(model_uri, customer_id):
 def cached_app_details():
     return get_app_details
 
-API_URL = HOST_URL + ':' + PORT + '/predict/'
+API_URL = HOST_URL + ':' + str(PORT) + '/predict/'
 
 # Use the full page instead of a narrow central column
 st.set_page_config(layout="wide")
